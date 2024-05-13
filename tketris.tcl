@@ -176,6 +176,17 @@ proc init {} {
 			-width [expr {$game(cellsize) * 4}]\
 			-height [expr {$game(cellsize) * 4}]\
 			-background grey
+	# preview is a 4x4 grid
+	for {set y 0} {$y < 4} {incr y} {
+		for {set x 0} {$x < 4} {incr x} {
+			$widget(preview) create rectangle\
+					[expr {$x * $game(cellsize) + 1}]\
+					[expr {$y * $game(cellsize) + 1}]\
+					[expr {($x + 1) * $game(cellsize) + 1}]\
+					[expr {($y + 1) * $game(cellsize) + 1}]\
+					-tags {empty cell}
+		}
+	}
 	pack $widget(preview) -padx 2 -pady 2
 
 	# scoreboard (stats)
@@ -306,16 +317,29 @@ proc hard_drop {} {
 proc next_piece {} {
 	variable game
 	variable piece
+	variable widget
 	# TODO consider making this a queue
 	#set rand [expr round(rand() * 7) % 7]
 	#set game(nextqueue) [lindex $piece(all) $rand]
 	set game(nextqueue) O
+	# draw preview
+	$widget(preview) itemconfigure preview -fill {}
+	tag_piece $widget(preview) preview {1 2 preview} $piece($game(nextqueue))
+	$widget(preview) itemconfigure preview -fill $piece($game(nextqueue)color)
 }
 
 # convert a matrix coordinate into a coordinate inside $widget(canvas)
 # approx. centered on the corresponding visual cell
-proc canvas_coord {x y} {
+proc canvas_coord {x y {canvas .matrix}} {
 	variable game
+	variable widget
+	if {$canvas != $widget(matrix)} {
+		# so that this can be reused for the preview. a bit of a hack
+		return [list [expr {round($x * $game(cellsize)
+					+ ($game(cellsize)/2))}]\
+			[expr {round(($y * $game(cellsize))\
+					+ ($game(cellsize)/2))}]]
+	}
 	return [list [expr {round($x * $game(cellsize)
 				+ ($game(cellsize)/2))}]\
 		[expr {round(($y * $game(cellsize))\
@@ -348,7 +372,7 @@ proc tag_piece {canvas tag center piece} {
 	foreach {x y} $piece {
 		set x [expr ($cx + $x)]
 		set y [expr ($cy + $y)]
-		$canvas addtag $tag closest {*}[canvas_coord $x $y]
+		$canvas addtag $tag closest {*}[canvas_coord $x $y $canvas]
 	}
 }
 
