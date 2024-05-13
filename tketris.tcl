@@ -378,12 +378,16 @@ proc tag_piece {canvas tag center piece} {
 	}
 }
 
-# checks if the falling piece can move into the position centered at {x y}
-proc valid_move {nx ny} {
+# checks if the given piece can move into the position centered at {x y}
+# defaults to the current falling piece
+proc valid_move {nx ny {piece {}}} {
 	variable matrix
 	variable widget
 
-	foreach {px py} $matrix(fallpiece) {
+	if {$piece == {}} {
+		set piece $matrix(fallpiece)
+	}
+	foreach {px py} $piece {
 		set x [expr {$nx + $px}]
 		set y [expr {$ny + $py}]
 		if {$x >= $matrix(width) || $x < 0 || $y >= $matrix(height)} {
