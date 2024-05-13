@@ -65,6 +65,7 @@ proc init {} {
 		locked true
 		nextqueue O
 		piece {}
+		piecefacing {}
 		score 0
 		cleared 0
 		level 0
@@ -96,6 +97,7 @@ proc init {} {
 	# O has no stored rotations, its center is always the bottom-left.
 	array set piece [list \
 		list {L J I O S Z T}\
+		facings {north east south west}\
 		Lcolor orange\
 		Jcolor blue\
 		Icolor cyan\
@@ -231,6 +233,8 @@ proc init {} {
 
 	bind $widget(matrix) <<MoveLeft>> [namespace code {move_piece left}]
 	bind $widget(matrix) <<MoveRight>> [namespace code {move_piece right}]
+	bind $widget(matrix) <<RotateRight>> [namespace code {rotate_piece right}]
+	bind $widget(matrix) <<RotateLeft>> [namespace code {rotate_piece left}]
 	bind $widget(matrix) <<SoftDropStart>> [namespace code {soft_drop true}]
 	bind $widget(matrix) <<SoftDropStop>> [namespace code {soft_drop false}]
 	bind $widget(matrix) <<HardDrop>> [namespace code {hard_drop}]
@@ -251,6 +255,39 @@ proc new_game {} {
 
 	focus $widget(matrix)
 	gen_phase
+}
+
+# attempt to rotate a piece left (counter clockwise) or right (clockwise)
+proc rotate_piece {dir} {
+	variable game
+	variable piece
+
+	if {$game(locked) || $game(piece) == "O"} {return}
+
+	# basically treat pieces(facing) like an enum...
+	switch -- $game(piecefacing) {
+		north {set newfacing 0}
+		east {set newfacing 1}
+		south {set newfacing 2}
+		west {set newfacing 3}
+	}
+	switch -- $dir {
+		left {incr newfacing -1}
+		right {incr newfacing 1}
+	}
+	set newfacing [lindex $piece(facings) [expr {$newfacing % 4}]]
+	puts "attempting to turn piece $newfacing"
+
+	if {$newfacing == "north"} {
+		# pieces start facing north
+		set newpiece $piece($game(piece))
+	} else {
+		puts "TODO: implement look-up for facings: east south west"
+		#set newpiece $piece($game(piece)$newfacing)
+	}
+
+	# TODO check if rotation has caused piece to "lift"
+	# (and therefore may cause it to go from locking to falling)
 }
 
 # attempt to move piece left or right
@@ -457,6 +494,7 @@ proc gen_phase {} {
 
 	puts "generating piece"
 	set game(piece) $game(nextqueue)
+	set game(piecefacing) north
 	next_piece
 
 	# place the center of the piece at $matrix(generate)
