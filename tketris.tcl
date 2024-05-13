@@ -323,9 +323,7 @@ proc next_piece {} {
 
 	# TODO consider making this a queue
 	set rand [expr round(rand() * 7) % 7]
-	#set game(nextqueue) [lindex $piece(list) $rand]
-	set game(nextqueue) O
-	#puts $game(nextqueue)
+	set game(nextqueue) [lindex $piece(list) $rand]
 
 	# draw preview
 	$widget(preview) itemconfigure preview -fill {}
@@ -565,7 +563,6 @@ proc pattern_phase {} {
 		if {$clear} {
 			lappend matrix(clearedlines) $line
 			$widget(matrix) addtag cleared withtag checked
-			$widget(matrix) itemconfigure cleared -fill white
 		}
 		$widget(matrix) dtag checked
 	}
@@ -584,15 +581,15 @@ proc clear_phase {} {
 
 	# Animate
 	set matrix(clearedlines) [lsort -integer $matrix(clearedlines)]
-	puts $matrix(clearedlines)
-	$widget(matrix) itemconfigure cleared -fill {}
-	$widget(matrix) addtag empty withtag cleared
-	$widget(matrix) dtag cleared full
-	$widget(matrix) dtag cleared
+	$widget(matrix) itemconfigure cleared -fill white
 	foreach cleared $matrix(clearedlines) {
 		shift_line $cleared
 	}
 	update idletasks
+	$widget(matrix) itemconfigure cleared -fill {}
+	$widget(matrix) addtag empty withtag cleared
+	$widget(matrix) dtag cleared full
+	$widget(matrix) dtag cleared
 
 	# Eliminate
 	# TODO award points/levels based on $matrix(clearedlines)
