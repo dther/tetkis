@@ -221,6 +221,7 @@ proc init {} {
 	bind $widget(matrix) <<MoveRight>> [namespace code {move_piece right}]
 	bind $widget(matrix) <<SoftDropStart>> [namespace code {soft_drop true}]
 	bind $widget(matrix) <<SoftDropStop>> [namespace code {soft_drop false}]
+	bind $widget(matrix) <<HardDrop>> [namespace code {hard_drop}]
 }
 
 # clear matrix, reseed PRNG, restart game
@@ -284,6 +285,21 @@ proc soft_drop {set} {
 	} else {
 		set game(fallms) $game(basefallms)
 	}
+}
+
+# drop and lock piece immediately
+proc hard_drop {} {
+	variable matrix
+	variable game
+
+	puts "hard drop!"
+	cancel_fall
+	cancel_lock
+	while {[can_fall]} {
+		lset matrix(fallcenter) 1 [expr [lindex $matrix(fallcenter) 1] + 1]
+		redraw
+	}
+	lock_piece
 }
 
 # add new piece to the queue
