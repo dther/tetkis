@@ -259,6 +259,11 @@ proc move_piece {dir} {
 		redraw
 		# re-check if we can fall
 		if {[can_fall] && $game(fallafter) == false} {
+			# XXX Not quite correct behaviour:
+			# Tetris guidelines state that the lock should only be
+			# paused, and only be cancelled once the piece
+			# successfully falls, to prevent stalling forever.
+			# Probably doable with [clock milliseconds].
 			cancel_lock
 			set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
 		} elseif {![can_fall] && $game(fallafter) != false} {
