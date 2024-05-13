@@ -102,13 +102,13 @@ proc init {} {
 		Scolor green\
 		Zcolor red\
 		Tcolor magenta\
-		L {}\
-		J {}\
-		I {}\
+		L {0 0}\
+		J {0 0}\
+		I {0 0}\
 		O {0 0  1 0  0 -1  1 -1}\
-		S {}\
-		Z {}\
-		T {}\
+		S {0 0}\
+		Z {0 0}\
+		T {0 0}\
 	]
 
 	# UI elements
@@ -318,10 +318,12 @@ proc next_piece {} {
 	variable game
 	variable piece
 	variable widget
+
 	# TODO consider making this a queue
-	#set rand [expr round(rand() * 7) % 7]
-	#set game(nextqueue) [lindex $piece(all) $rand]
-	set game(nextqueue) O
+	set rand [expr round(rand() * 7) % 7]
+	set game(nextqueue) [lindex $piece(list) $rand]
+	#puts $game(nextqueue)
+
 	# draw preview
 	$widget(preview) itemconfigure preview -fill {}
 	tag_piece $widget(preview) preview {1 2 preview} $piece($game(nextqueue))
@@ -464,7 +466,11 @@ proc gen_phase {} {
 
 	set game(locked) false
 	redraw
-	set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
+	if {[can_fall]} {
+		set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
+	} else {
+		lock_phase
+	}
 }
 
 # drop the piece one step
@@ -476,7 +482,7 @@ proc fall_phase {} {
 	set matrix(fallcenter) [list [lindex $matrix(fallcenter) 0] [expr [lindex $matrix(fallcenter) 1] + 1]]
 	redraw
 
-	if [can_fall] {
+	if {[can_fall]} {
 		set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
 	} else {
 		lock_phase
@@ -507,6 +513,7 @@ proc lock_piece {} {
 	$widget(matrix) dtag full empty
 
 	redraw
+	# TODO check if locked out (then it's game over)
 	pattern_phase
 }
 
