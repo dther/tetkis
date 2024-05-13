@@ -102,13 +102,13 @@ proc init {} {
 		Scolor green\
 		Zcolor red\
 		Tcolor magenta\
-		L {0 0}\
-		J {0 0}\
-		I {0 0}\
 		O {0 0  1 0  0 -1  1 -1}\
-		S {0 0}\
-		Z {0 0}\
-		T {0 0}\
+		I {0 -1  -1 -1  1 -1  2 -1}\
+		T {0 0  -1 0  1 0  0 -1}\
+		L {0 0  1 0  -1 0  1 -1}\
+		J {0 0  1 0  -1 0  -1 -1}\
+		S {0 0  -1 0  0 -1 1 -1}\
+		Z {0 0  1 0  0 -1  -1 -1}\
 	]
 
 	# UI elements
@@ -457,6 +457,12 @@ proc gen_phase {} {
 	# place the center of the piece at $matrix(generate)
 	set matrix(fallcenter) $matrix(generate)
 	set matrix(fallpiece) $piece($game(piece))
+	# start lower for I because its rotational center is higher than others
+	if {$game(piece) == "I"} {
+		lset matrix(fallcenter) 1 [expr [lindex $matrix(fallcenter) 1] + 1]
+	}
+
+	# TODO check for block out (game over)
 
 	# if space is available, immediately fall one block down
 	# (As stated by the Tetris Guidelines.)
