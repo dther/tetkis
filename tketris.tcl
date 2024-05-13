@@ -323,7 +323,8 @@ proc next_piece {} {
 
 	# TODO consider making this a queue
 	set rand [expr round(rand() * 7) % 7]
-	set game(nextqueue) [lindex $piece(list) $rand]
+	#set game(nextqueue) [lindex $piece(list) $rand]
+	set game(nextqueue) O
 	#puts $game(nextqueue)
 
 	# draw preview
@@ -563,8 +564,8 @@ proc pattern_phase {} {
 		}
 		if {$clear} {
 			lappend matrix(clearedlines) $line
-			$widget(matrix) addtag delete withtag checked
-			$widget(matrix) itemconfigure delete -fill white
+			$widget(matrix) addtag cleared withtag checked
+			$widget(matrix) itemconfigure cleared -fill white
 		}
 		$widget(matrix) dtag checked
 	}
@@ -577,17 +578,59 @@ proc pattern_phase {} {
 # this combines the iterate, animate and eliminate phase.
 proc clear_phase {} {
 	variable matrix
+	variable widget
 
 	# XXX Iterate would occur here, and is unused.
 
 	# Animate
-	set matrix(clearedlines) [lsort -integer -decreasing $matrix(clearedlines)]
+	set matrix(clearedlines) [lsort -integer $matrix(clearedlines)]
+	puts $matrix(clearedlines)
+	$widget(matrix) itemconfigure cleared -fill {}
+	$widget(matrix) addtag empty withtag cleared
+	$widget(matrix) dtag cleared full
+	$widget(matrix) dtag cleared
+	foreach cleared $matrix(clearedlines) {
+		shift_line $cleared
+	}
+	update idletasks
 
 	# Eliminate
 	# TODO award points/levels based on $matrix(clearedlines)
 	set matrix(clearedlines) {}
 
 	complete_phase
+}
+
+# move a cleared line to the top, and the lines above it down
+proc shift_line {line} {
+	variable matrix
+	variable game
+	variable widget
+
+	set above [expr {$line - 1}]
+	if {$above > 0} {
+		$widget(matrix) addtag movedown overlapping {*}[canvas_coord 0 0]\
+					{*}[canvas_coord $matrix(width) $above]
+	}
+
+	$widget(matrix) addtag moveup overlapping {*}[canvas_coord 0 $line]\
+					{*}[canvas_coord $matrix(width) $line]
+
+	# pshhh boring
+	#$widget(matrix) move movedown 0 $game(cellsize)
+	$widget(matrix) move moveup 0 [expr $game(cellsize) * -1 * $line]
+
+	# XXX animated for style points
+	for {set i 0} {$i < $game(cellsize)} {incr i} {
+		$widget(matrix) move movedown 0 1
+		after 1
+		update idletasks
+	}
+
+	$widget(matrix) dtag moveup full
+
+	$widget(matrix) dtag moveup
+	$widget(matrix) dtag movedown
 }
 
 # update stat counters, then return to gen_phase
