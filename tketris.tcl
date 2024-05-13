@@ -529,6 +529,8 @@ proc lock_piece {} {
 
 # check for line clears, award points
 proc pattern_phase {} {
+	cancel_fall
+	cancel_lock
 	clear_phase
 }
 
