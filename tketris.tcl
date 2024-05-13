@@ -221,12 +221,12 @@ proc init {} {
 	bind $widget(matrix) <<MoveRight>> [namespace code {move_piece right}]
 	bind $widget(matrix) <<SoftDropStart>> [namespace code {soft_drop true}]
 	bind $widget(matrix) <<SoftDropStop>> [namespace code {soft_drop false}]
-	focus $widget(matrix)
 }
 
 # clear matrix, reseed PRNG, restart game
 proc new_game {} {
 	variable game
+	variable widget
 
 	# cancel all timers
 	cancel_fall
@@ -236,6 +236,7 @@ proc new_game {} {
 	expr {srand($game(seed))}
 	next_piece
 
+	focus $widget(matrix)
 	gen_phase
 }
 
