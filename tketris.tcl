@@ -229,14 +229,8 @@ proc new_game {} {
 	variable game
 
 	# cancel all timers
-	if {$game(lockafter) != "false"} {
-		after cancel $game(lockafter)
-		set game(lockafter) false
-	}
-	if {$game(fallafter) != "false"} {
-		after cancel $game(fallafter)
-		set game(fallafter) false
-	}
+	cancel_fall
+	cancel_lock
 
 	# seed PRNG
 	expr {srand($game(seed))}
@@ -365,6 +359,14 @@ proc cancel_fall {} {
 	if {$game(fallafter) != false} {
 		after cancel $game(fallafter)
 		set game(fallafter) false
+	}
+}
+
+proc cancel_lock {} {
+	variable game
+	if {$game(lockafter) != false} {
+		after cancel $game(lockafter)
+		set game(lockafter) false
 	}
 }
 
