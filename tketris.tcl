@@ -219,8 +219,8 @@ proc init {} {
 
 	bind $widget(matrix) <<MoveLeft>> [namespace code {move_piece left}]
 	bind $widget(matrix) <<MoveRight>> [namespace code {move_piece right}]
-	bind $widget(matrix) <<SoftDropStart>> [namespace code {softdrop true}]
-	bind $widget(matrix) <<SoftDropStop>> [namespace code {softdrop false}]
+	bind $widget(matrix) <<SoftDropStart>> [namespace code {soft_drop true}]
+	bind $widget(matrix) <<SoftDropStop>> [namespace code {soft_drop false}]
 	focus $widget(matrix)
 }
 
@@ -264,7 +264,7 @@ proc move_piece {dir} {
 }
 
 # start or stop softdrop
-proc softdrop {set} {
+proc soft_drop {set} {
 	variable game
 	if $set {
 		set game(fallms) $game(softdropms)
@@ -277,6 +277,7 @@ proc softdrop {set} {
 proc next_piece {} {
 	variable game
 	variable piece
+	# TODO consider making this a queue
 	#set rand [expr round(rand() * 7) % 7]
 	#set game(nextqueue) [lindex $piece(all) $rand]
 	set game(nextqueue) O
