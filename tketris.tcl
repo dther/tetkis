@@ -78,6 +78,7 @@ proc init {} {
 	# generate: the first area to try generating a new piece (left-center)
 	# fallcenter: rotational center of current falling piece
 	# fallpiece: cells taken up by the falling piece, relative to center
+	# clearedlines: lines that are full and marked for deletion
 	array set matrix {
 		height 20
 		width 10
@@ -85,7 +86,7 @@ proc init {} {
 		generate {4 -1}
 		fallcenter {}
 		fallpiece {}
-		fallpiecename {}
+		clearedlines {}
 	}
 
 	# info about pieces
@@ -303,6 +304,7 @@ proc hard_drop {} {
 	variable matrix
 	variable game
 
+	if {$game(locked)} {return}
 	puts "hard drop!"
 	cancel_fall
 	cancel_lock
@@ -524,19 +526,67 @@ proc lock_piece {} {
 
 	redraw
 	# TODO check if locked out (then it's game over)
+
+	# XXX in multiplayer, this is when incoming attack lines would appear.
 	pattern_phase
 }
 
 # check for line clears, award points
 proc pattern_phase {} {
+	variable matrix
+	variable widget
+
 	cancel_fall
 	cancel_lock
+
+	set checklines {}
+	foreach {x y} $matrix(fallpiece) {
+		set line [expr $y + [lindex $matrix(fallcenter) 1]]
+		if {[lsearch -exact -inline $checklines $line] == {}} {
+			lappend checklines [expr $line]
+		}
+	}
+
+	set matrix(clearedlines) {}
+	foreach line $checklines {
+		set cells [$widget(matrix) find\
+				overlapping {*}[canvas_coord 0 $line]\
+					{*}[canvas_coord $matrix(width) $line]]
+		set clear true
+		foreach cell $cells {
+			$widget(matrix) addtag checked withtag $cell
+			set tags [$widget(matrix) gettags $cell]
+			if {[lsearch -exact -inline $tags empty] != {}} {
+				set clear false
+				break
+			}
+		}
+		if {$clear} {
+			lappend matrix(clearedlines) $line
+			$widget(matrix) addtag delete withtag checked
+			$widget(matrix) itemconfigure delete -fill white
+		}
+		$widget(matrix) dtag checked
+	}
+
+	# TODO if no lines are cleared, award T-spins early
 	clear_phase
 }
 
 # update canvas: playing animations, deleting blocks, etc.
 # this combines the iterate, animate and eliminate phase.
 proc clear_phase {} {
+	variable matrix
+
+	# XXX Iterate would occur here, and is unused.
+
+	# Animate
+	set matrix(clearedlines) [lsort -integer -decreasing $matrix(clearedlines)]
+
+	# Eliminate
+	# TODO award points/levels based on $matrix(clearedlines)
+	set matrix(clearedlines) {}
+
 	complete_phase
 }
 
