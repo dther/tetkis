@@ -229,8 +229,8 @@ proc new_game {} {
 	variable widget
 
 	# cancel all timers
-	cancel_fall
 	cancel_lock
+	cancel_fall
 
 	# seed PRNG
 	expr {srand($game(seed))}
@@ -257,7 +257,14 @@ proc move_piece {dir} {
 	if [valid_move {*}$newpos] {
 		set matrix(fallcenter) $newpos
 		redraw
-		# TODO re-check if we can fall
+		# re-check if we can fall
+		if {[can_fall] && $game(fallafter) == false} {
+			cancel_lock
+			set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
+		} elseif {![can_fall] && $game(fallafter) != false} {
+			cancel_fall
+			lock_phase
+		}
 	} else {
 		bell
 		puts "blocked"
@@ -333,10 +340,12 @@ proc valid_move {nx ny} {
 		set x [expr {$nx + $px}]
 		set y [expr {$ny + $py}]
 		if {$x >= $matrix(width) || $x < 0 || $y >= $matrix(height)} {
+			puts "can't move: $x $y out of bounds"
 			return false
 		}
 		# check for filled cells
 		if {[cell_occupied $x $y]} {
+			puts "can't move: $x $y occupied"
 			return false
 		}
 	}
@@ -372,6 +381,14 @@ proc cancel_lock {} {
 	}
 }
 
+proc can_fall {} {
+	variable matrix
+	set nextfall $matrix(fallcenter)
+	lset nextfall 1 [expr [lindex $matrix(fallcenter) 1] + 1]
+
+	return [valid_move {*}$nextfall]
+}
+
 # GAME FLOW
 # the following functions are called at the beginning of each "phase",
 # and repeat until the game is over
@@ -382,6 +399,11 @@ proc gen_phase {} {
 	variable matrix
 	variable piece
 
+	# ensure these can't happen out of turn
+	cancel_fall
+	cancel_lock
+
+	puts "generating piece"
 	set game(piece) $game(nextqueue)
 	next_piece
 
@@ -391,10 +413,8 @@ proc gen_phase {} {
 
 	# if space is available, immediately fall one block down
 	# (As stated by the Tetris Guidelines.)
-	set xone [expr [lindex $matrix(fallcenter) 0]]
-	set yone [expr [lindex $matrix(fallcenter) 1] + 1]
-	if {[valid_move $xone $yone]} {
-		set matrix(fallcenter) [list $xone $yone]
+	if {[can_fall]} {
+		lset matrix(fallcenter) 1 [expr [lindex $matrix(fallcenter) 1] + 1]
 	}
 
 	set game(locked) false
@@ -411,10 +431,7 @@ proc fall_phase {} {
 	set matrix(fallcenter) [list [lindex $matrix(fallcenter) 0] [expr [lindex $matrix(fallcenter) 1] + 1]]
 	redraw
 
-	set nextfall $matrix(fallcenter)
-	lset nextfall 1 [expr [lindex $matrix(fallcenter) 1] + 1]
-
-	if [valid_move {*}$nextfall] {
+	if [can_fall] {
 		set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
 	} else {
 		lock_phase
@@ -426,6 +443,7 @@ proc fall_phase {} {
 proc lock_phase {} {
 	variable game
 
+	puts "lock phase start"
 	cancel_fall
 	set game(lockafter) [after $game(lockms) [namespace code lock_piece]]
 }
@@ -437,6 +455,8 @@ proc lock_piece {} {
 	variable widget
 
 	set game(locked) true
+	puts "piece locked at $matrix(fallcenter)"
+
 	$widget(matrix) addtag full withtag falling
 	$widget(matrix) dtag falling
 	$widget(matrix) dtag full empty
