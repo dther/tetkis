@@ -314,12 +314,16 @@ proc rotate_piece {dir} {
 		set game(piecefacing) $newfacing
 		set matrix(fallpiece) $newpiece
 		redraw
-		return
 	}
 
 	# XXX wall kicks go here
-	# TODO check if rotation has caused piece to "lift"
+
+	# check if rotation has caused piece to "lift"
 	# (and therefore may cause it to go from locking to falling)
+	if {[can_fall] && $game(lockafter) != "false" && $game(fallafter) == false} {
+		cancel_lock
+		set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
+	}
 }
 
 # attempt to move piece left or right
@@ -384,9 +388,6 @@ proc hard_drop {} {
 	variable game
 
 	if {$game(locked)} {return}
-	# TODO i think I caught a single cell getting eaten by hard_drop.
-	# maybe [set game(locked) true] here, to prevent further inputs.
-	# (also update idletasks in redraw?)
 	puts "hard drop!"
 	cancel_fall
 	cancel_lock
@@ -573,8 +574,12 @@ proc fall_phase {} {
 	variable game
 	variable matrix
 
-	# TODO: add one last check before falling,
-	# in case fall_phase occurs late due to event queue race condition weirdness?
+	# one last check before falling,
+	# in case an input occurs in between fall_phase that prevents falling
+	if {![can_fall]} {
+		tailcall lock_phase
+	}
+
 	set game(softdropped) $game(softdropping)
 	set matrix(fallcenter) [list [lindex $matrix(fallcenter) 0] [expr [lindex $matrix(fallcenter) 1] + 1]]
 	redraw
@@ -582,7 +587,7 @@ proc fall_phase {} {
 	if {[can_fall]} {
 		set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
 	} else {
-		lock_phase
+		tailcall lock_phase
 	}
 }
 
