@@ -107,11 +107,29 @@ proc init {} {
 		Tcolor magenta\
 		O {0 0  1 0  0 -1  1 -1}\
 		I {0 -1  -1 -1  1 -1  2 -1}\
-		T {0 0  -1 0  1 0  0 -1}\
+		T {0 0  1 0  -1 0  0 -1}\
 		L {0 0  1 0  -1 0  1 -1}\
 		J {0 0  1 0  -1 0  -1 -1}\
 		S {0 0  -1 0  0 -1 1 -1}\
 		Z {0 0  1 0  0 -1  -1 -1}\
+		eastI {1 0  1 -1  1 -2  1 1}\
+		eastT {0 0  0 -1  0 1  1 0}\
+		eastL {0 0  0 -1  0 1  1 1}\
+		eastJ {0 0  0 -1  0 1  1 -1}\
+		eastS {0 0  0 -1  1 0  1 1}\
+		eastZ {0 0  0 1  1 0  1 -1}\
+		southI {0 0  -1 0  1 0  2 0}\
+		southT {0 0  1 0  -1 0  0 1}\
+		southL {0 0  1 0  -1 0  -1 1}\
+		southJ {0 0  1 0  -1 0  1 1}\
+		southS {0 1  -1 1  0 0  1 0}\
+		southZ {0 1  1 1  0 0  -1 0}\
+		westI {0 0  0 -1  0 -2  0 1}\
+		westT {0 0  0 -1  0 1  -1 0}\
+		westL {0 0  0 -1  0 1  -1 -1}\
+		westJ {0 0  0 -1  0 1  -1 1}\
+		westS {-1 0  -1 -1  0 0  0 1}\
+		westZ {-1 0  -1 1  0 0  0 -1}\
 	]
 
 	# UI elements
@@ -261,6 +279,7 @@ proc new_game {} {
 proc rotate_piece {dir} {
 	variable game
 	variable piece
+	variable matrix
 
 	if {$game(locked) || $game(piece) == "O"} {return}
 
@@ -282,10 +301,17 @@ proc rotate_piece {dir} {
 		# pieces start facing north
 		set newpiece $piece($game(piece))
 	} else {
-		puts "TODO: implement look-up for facings: east south west"
-		#set newpiece $piece($game(piece)$newfacing)
+		set newpiece $piece($newfacing$game(piece))
 	}
 
+	if {[valid_move {*}$matrix(fallcenter) $newpiece]} {
+		set game(piecefacing) $newfacing
+		set matrix(fallpiece) $newpiece
+		redraw
+		return
+	}
+
+	# XXX wall kicks go here
 	# TODO check if rotation has caused piece to "lift"
 	# (and therefore may cause it to go from locking to falling)
 }
