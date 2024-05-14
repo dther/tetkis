@@ -103,10 +103,17 @@ proc init {} {
 	}
 
 	# info about pieces
+	# Modern Tetris uses a lot of hidden calculation to ensure that
+	# pieces rotate intuitively.
+	# See "rotate_piece" and "get_piece_kicks" for more information.
+	#
 	# rotations are stored as a list of x y pairs, where (0, 0)
-	# is the "rotational center".
-	# For all pieces except (sometimes) I, this is always an occupied cell.
-	# O has no stored rotations, its center is always the bottom-left.
+	# is the "rotational center". this is always an occupied cell.
+	# The "offset" tables are used to ensure pieces rotate in an
+	# intuitive manner, accounting for both "visual center" and "kicks".
+	# All pieces except I and O have the same offset table.
+	# I is a special case, and has its own offset table.
+	# O has no stored rotations and no offsets. It cannot rotate.
 	array set piece [list \
 		list {L J I O S Z T}\
 		facings {north east south west}\
@@ -118,19 +125,19 @@ proc init {} {
 		Zcolor red\
 		Tcolor magenta\
 		O {0 0  1 0  0 -1  1 -1}\
-		I {0 -1  -1 -1  1 -1  2 -1}\
+		I {0 0  -1 0  1 0  2 0}\
 		T {0 0  1 0  -1 0  0 -1}\
 		L {0 0  1 0  -1 0  1 -1}\
 		J {0 0  1 0  -1 0  -1 -1}\
 		S {0 0  -1 0  0 -1 1 -1}\
 		Z {0 0  1 0  0 -1  -1 -1}\
-		eastI {1 0  1 -1  1 -2  1 1}\
+		eastI {0 0  0 -1  0 1  0 2}\
 		eastT {0 0  0 -1  0 1  1 0}\
 		eastL {0 0  0 -1  0 1  1 1}\
 		eastJ {0 0  0 -1  0 1  1 -1}\
 		eastS {0 0  0 -1  1 0  1 1}\
 		eastZ {0 0  0 1  1 0  1 -1}\
-		southI {0 0  -1 0  1 0  2 0}\
+		southI {0 0  -1 0  1 0  -2 0}\
 		southT {0 0  1 0  -1 0  0 1}\
 		southL {0 0  1 0  -1 0  -1 1}\
 		southJ {0 0  1 0  -1 0  1 1}\
@@ -142,6 +149,14 @@ proc init {} {
 		westJ {0 0  0 -1  0 1  -1 1}\
 		westS {-1 0  -1 -1  0 0  0 1}\
 		westZ {-1 0  -1 1  0 0  0 -1}\
+		northoffset {{0 0} {0 0}  {0 0}  {0 0}  {0 0}}\
+		eastoffset  {{0 0} {1 0}  {1 1}  {0 -2} {1 -2}}\
+		southoffset {{0 0} {0 0}  {0 0}  {0 0}  {0 0}}\
+		westoffset  {{0 0} {-1 0} {-1 1} {0 -2} {-1 -2}}\
+		Inorthoffset {{0 0}   {-1 0} {2 0}   {-1 0} {2 0}}\
+		Ieastoffset  {{-1 0}  {0 0}  {0 0}   {0 -1} {0 2}}\
+		Isouthoffset {{-1 -1} {1 -1} {-2 -1} {1 0}  {-2 0}}\
+		Iwestoffset  {{0 -1}  {0 -1} {0 -1}  {0 1}  {0 -2}}\
 	]
 
 	# UI elements
@@ -410,14 +425,29 @@ proc rotate_piece {dir} {
 		set newpiece $piece($newfacing$game(piece))
 	}
 
+if 0 {
 	if {[valid_move {*}$matrix(fallcenter) $newpiece]} {
 		set game(piecefacing) $newfacing
 		set matrix(fallpiece) $newpiece
 		redraw
 	}
+}
 
-	# XXX wall kicks go here
-	# if a T piece manages to rotate to a valid position after five tries,
+	set kicks [get_piece_kicks $game(piece) $game(piecefacing) $newfacing]
+	foreach kick $kicks {
+		set trycenter [lmap center $matrix(fallcenter) shift $kick {
+			expr {$center + $shift}
+		}]
+		if {[valid_move {*}$trycenter $newpiece]} {
+			set matrix(fallcenter) $trycenter
+			set game(piecefacing) $newfacing
+			set matrix(fallpiece) $newpiece
+			redraw
+			break
+		}
+	}
+
+	# TODO if a T piece manages to rotate to a valid position after five tries,
 	# and locks as a result, then it's a full (not mini) t-spin
 
 	# check if rotation has caused piece to "lift"
@@ -428,6 +458,32 @@ proc rotate_piece {dir} {
 	}
 	# TODO: if a T piece successfully rotates and can't fall,
 	# set a flag to check for t-spins during lock_piece
+}
+
+# The explanation for this is complicated.
+# The best explanation available is at the following Tetris Wiki link:
+# https://tetris.wiki/Super_Rotation_System#How_Guideline_SRS_Really_Works
+# 
+# Note the following differences:
+# - The coordinate system in Tketris has the y coordinated inverted,
+#   such that positive y is downwards.
+# - Piece facings are notated as described in the Tetris Guidelines:
+#   0 = north, R = east, 2 = south, L = west.
+proc get_piece_kicks {piecename currentfacing newfacing} {
+	variable piece
+	if {$piecename == "O"} {return -code 1 "O piece can't rotate."}
+	if {$piecename == "I"} {
+		set startoffsets $piece(I${currentfacing}offset)
+		set endoffsets $piece(I${newfacing}offset)
+	} else {
+		set startoffsets $piece(${currentfacing}offset)
+		set endoffsets $piece(${newfacing}offset)
+	}
+
+	# rotating makes my head spin
+	return [lmap start $startoffsets end $endoffsets {
+		lmap s $start e $end {expr $s - $e}
+	}]
 }
 
 # attempt to move piece left or right
@@ -700,11 +756,6 @@ proc gen_phase {} {
 	# place the center of the piece at $matrix(generate)
 	set matrix(fallcenter) $matrix(generate)
 	set matrix(fallpiece) $piece($game(piece))
-	# start lower for I because its rotational center is higher than others
-	if {$game(piece) == "I"} {
-		lset matrix(fallcenter) 1 [expr [lindex $matrix(fallcenter) 1] + 1]
-	}
-
 	redraw
 	if {[block_out]} {
 		tailcall game_over
