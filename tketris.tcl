@@ -50,6 +50,10 @@ proc init {} {
 	# lockms: milliseconds after landing, after which piece is "locked"
 	# fallafter: if not false, id given by "after" for the next fall_phase
 	# lockafter: like above but for lock_piece
+	# softdropping: "true" when the soft drop button is down.
+	# softdropped: set to the value of "softdropping" after a fall,
+	#              or immediately after soft dropping (in order to
+	#              essentially "speed up" the first soft drop)
 	# locked: if true, player cannot input piece movements
 	array set game {
 		name Tketris
@@ -62,6 +66,8 @@ proc init {} {
 		lockms 500
 		fallafter false
 		lockafter false
+		softdropping false
+		softdropped false
 		locked true
 		nextqueue O
 		piece {}
@@ -356,9 +362,19 @@ proc move_piece {dir} {
 proc soft_drop {set} {
 	variable game
 	if $set {
+		set game(softdropping) true
 		set game(fallms) $game(softdropms)
+		if {!$game(softdropped) && [can_fall]} {
+			set game(softdropped) true
+			cancel_fall
+			set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
+		}
 	} else {
+		set game(softdropping) false
 		set game(fallms) $game(basefallms)
+		if {[can_fall] && $game(fallafter) == false} {
+			set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
+		}
 	}
 }
 
@@ -368,6 +384,9 @@ proc hard_drop {} {
 	variable game
 
 	if {$game(locked)} {return}
+	# TODO i think I caught a single cell getting eaten by hard_drop.
+	# maybe [set game(locked) true] here, to prevent further inputs.
+	# (also update idletasks in redraw?)
 	puts "hard drop!"
 	cancel_fall
 	cancel_lock
@@ -554,6 +573,9 @@ proc fall_phase {} {
 	variable game
 	variable matrix
 
+	# TODO: add one last check before falling,
+	# in case fall_phase occurs late due to event queue race condition weirdness?
+	set game(softdropped) $game(softdropping)
 	set matrix(fallcenter) [list [lindex $matrix(fallcenter) 0] [expr [lindex $matrix(fallcenter) 1] + 1]]
 	redraw
 
@@ -582,6 +604,8 @@ proc lock_piece {} {
 
 	set game(locked) true
 	puts "piece locked at $matrix(fallcenter)"
+
+	set game(softdropped) false
 
 	$widget(matrix) addtag full withtag falling
 	$widget(matrix) dtag falling
