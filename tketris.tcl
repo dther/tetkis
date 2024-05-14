@@ -74,7 +74,8 @@ proc init {} {
 		piecefacing {}
 		score 0
 		cleared 0
-		level 0
+		level 1
+		b2b 0
 	}
 
 	# info on the "board"- a matrix of cells
@@ -291,7 +292,8 @@ proc new_game {} {
 		piecefacing {}
 		score 0
 		cleared 0
-		level 0
+		level 1
+		b2b 0
 	}
 
 	array set matrix {
@@ -318,6 +320,36 @@ proc new_game {} {
 
 	focus $widget(matrix)
 	gen_phase
+}
+
+# award points according to the Tetris scoring table
+proc award_points {action} {
+	variable game
+	# TODO T-spins
+	switch -- $action {
+		single {set base 100}
+		double {set base 300}
+		triple {set base 400}
+		tetris {set base 800}
+		softdrop {
+			incr game(score) 1
+			update_stats
+			return
+		}
+		harddrop {
+			incr game(score) 2
+			update_stats
+			return
+		}
+	}
+}
+
+# update stat widgets
+proc update_stats {} {
+	variable widget
+	variable game
+	$widget(score) configure -text "Score: $game(score)"
+	# TODO lines cleared, last action, etc.
 }
 
 # attempt to rotate a piece left (counter clockwise) or right (clockwise)
@@ -429,6 +461,7 @@ proc hard_drop {} {
 	cancel_lock
 	while {[can_fall]} {
 		lset matrix(fallcenter) 1 [expr [lindex $matrix(fallcenter) 1] + 1]
+		award_points harddrop
 		redraw
 	}
 	lock_piece
@@ -614,6 +647,9 @@ proc fall_phase {} {
 	}
 
 	set game(softdropped) $game(softdropping)
+	if {$game(softdropped)} {
+		award_points softdrop
+	}
 	set matrix(fallcenter) [list [lindex $matrix(fallcenter) 0] [expr [lindex $matrix(fallcenter) 1] + 1]]
 	redraw
 
@@ -658,6 +694,7 @@ proc lock_piece {} {
 proc pattern_phase {} {
 	variable matrix
 	variable widget
+	variable game
 
 	cancel_fall
 	cancel_lock
@@ -691,6 +728,13 @@ proc pattern_phase {} {
 		$widget(matrix) dtag checked
 	}
 
+	# track back-to-backs
+	if {[llength $matrix(clearedlines)] > 0} {
+		incr game(b2b)
+	} else {
+		# TODO don't reset b2b if t-spin occurred (but award no bonus)
+		set game(b2b) 0
+	}
 	# TODO if no lines are cleared, award T-spins early
 	clear_phase
 }
