@@ -301,7 +301,6 @@ proc rotate_piece {dir} {
 		right {incr newfacing 1}
 	}
 	set newfacing [lindex $piece(facings) [expr {$newfacing % 4}]]
-	puts "attempting to turn piece $newfacing"
 
 	if {$newfacing == "north"} {
 		# pieces start facing north
@@ -358,7 +357,6 @@ proc move_piece {dir} {
 		}
 	} else {
 		bell
-		puts "blocked"
 	}
 }
 
@@ -388,7 +386,6 @@ proc hard_drop {} {
 	variable game
 
 	if {$game(locked)} {return}
-	puts "hard drop!"
 	cancel_fall
 	cancel_lock
 	while {[can_fall]} {
@@ -475,12 +472,10 @@ proc valid_move {nx ny {piece {}}} {
 		set x [expr {$nx + $px}]
 		set y [expr {$ny + $py}]
 		if {$x >= $matrix(width) || $x < 0 || $y >= $matrix(height)} {
-			puts "can't move: $x $y out of bounds"
 			return false
 		}
 		# check for filled cells
 		if {[cell_occupied $x $y]} {
-			puts "can't move: $x $y occupied"
 			return false
 		}
 	}
@@ -538,7 +533,6 @@ proc gen_phase {} {
 	cancel_fall
 	cancel_lock
 
-	puts "generating piece"
 	set game(piece) $game(nextqueue)
 	set game(piecefacing) north
 	next_piece
@@ -596,7 +590,6 @@ proc fall_phase {} {
 proc lock_phase {} {
 	variable game
 
-	puts "lock phase start"
 	cancel_fall
 	set game(lockafter) [after $game(lockms) [namespace code lock_piece]]
 }
@@ -608,7 +601,6 @@ proc lock_piece {} {
 	variable widget
 
 	set game(locked) true
-	puts "piece locked at $matrix(fallcenter)"
 
 	set game(softdropped) false
 
