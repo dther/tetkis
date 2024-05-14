@@ -448,14 +448,6 @@ proc rotate_piece {dir} {
 		set newpiece $piece($newfacing$game(piece))
 	}
 
-if 0 {
-	if {[valid_move {*}$matrix(fallcenter) $newpiece]} {
-		set game(piecefacing) $newfacing
-		set matrix(fallpiece) $newpiece
-		redraw
-	}
-}
-
 	set kicks [get_piece_kicks $game(piece) $game(piecefacing) $newfacing]
 	foreach kick $kicks {
 		set trycenter [lmap center $matrix(fallcenter) shift $kick {
