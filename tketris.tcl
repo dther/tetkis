@@ -249,8 +249,8 @@ proc init {} {
 	event add <<MoveLeft>> <Left> <a>
 	event add <<MoveRight>> <Right> <d>
 	event add <<HardDrop>> <Up> <w>
-	event add <<SoftDropStart>> <Down> <s>
-	event add <<SoftDropStop>> <KeyRelease-Down> <KeyRelease-s>
+	event add <<SoftDropPress>> <Down> <s>
+	event add <<SoftDropRelease>> <KeyRelease-Down> <KeyRelease-s>
 	event add <<RotateRight>> <x> <e>
 	event add <<RotateLeft>> <z> <q>
 	event add <<Pause>> <Escape>
@@ -259,8 +259,8 @@ proc init {} {
 	bind $widget(matrix) <<MoveRight>> [namespace code {move_piece right}]
 	bind $widget(matrix) <<RotateRight>> [namespace code {rotate_piece right}]
 	bind $widget(matrix) <<RotateLeft>> [namespace code {rotate_piece left}]
-	bind $widget(matrix) <<SoftDropStart>> [namespace code {soft_drop true}]
-	bind $widget(matrix) <<SoftDropStop>> [namespace code {soft_drop false}]
+	bind $widget(matrix) <<SoftDropPress>> [namespace code {soft_drop true}]
+	bind $widget(matrix) <<SoftDropRelease>> [namespace code {soft_drop false}]
 	bind $widget(matrix) <<HardDrop>> [namespace code {hard_drop}]
 }
 
