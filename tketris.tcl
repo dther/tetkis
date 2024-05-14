@@ -60,16 +60,16 @@ proc init {} {
 		cellsize 25
 		seed 0
 		skyline 10
-		fallms 1000
 		basefallms 1000
 		softdropms 50
+		fallms 1000
 		lockms 500
 		fallafter false
 		lockafter false
 		softdropping false
 		softdropped false
 		locked true
-		nextqueue O
+		nextqueue {}
 		piece {}
 		piecefacing {}
 		score 0
@@ -268,10 +268,49 @@ proc init {} {
 proc new_game {} {
 	variable game
 	variable widget
+	variable matrix
 
 	# cancel all timers
 	cancel_lock
 	cancel_fall
+
+	# reset game and matrix
+	array set game {
+		skyline 10
+		basefallms 1000
+		softdropms 50
+		fallms 1000
+		lockms 500
+		fallafter false
+		lockafter false
+		softdropping false
+		softdropped false
+		locked true
+		nextqueue {}
+		piece {}
+		piecefacing {}
+		score 0
+		cleared 0
+		level 0
+	}
+
+	array set matrix {
+		fallcenter {}
+		fallpiece {}
+		clearedlines {}
+	}
+
+	# reset all cells
+	# ... really used a lot of tags here...
+	$widget(matrix) addtag empty withtag cell
+	$widget(matrix) dtag cell falling
+	$widget(matrix) dtag cell full
+	$widget(matrix) dtag cell cleared
+	$widget(matrix) dtag cell checked
+	$widget(matrix) dtag cell moveup
+	$widget(matrix) dtag cell movedown
+	$widget(matrix) itemconfigure cell -fill {}
+	update idletasks
 
 	# seed PRNG
 	expr {srand($game(seed))}
