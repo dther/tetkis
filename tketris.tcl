@@ -148,6 +148,7 @@ proc init {} {
 		stats .stats
 		score .stats.score
 		cleared .stats.cleared
+		level .stats.level
 		lastaction .stats.lastaction
 		gamemenu .gamemenu
 		newgame .gamemenu.newgame
@@ -225,8 +226,10 @@ proc init {} {
 	ttk::label $widget(cleared) -text "Cleared: 0"
 	ttk::label $widget(lastaction) -text {} \
 				-wraplength [expr {4*$game(cellsize)}]
+	ttk::label $widget(level) -text "Level: 0"
 	pack $widget(score) -fill x
 	pack $widget(cleared) -fill x
+	pack $widget(level) -fill x
 	pack $widget(lastaction) -fill x
 
 	# game menu
@@ -319,6 +322,7 @@ proc new_game {} {
 	$widget(matrix) dtag cell moveup
 	$widget(matrix) dtag cell movedown
 	$widget(matrix) itemconfigure cell -fill {}
+	update_stats
 	update idletasks
 
 	# seed PRNG
@@ -370,6 +374,7 @@ proc update_stats {} {
 	variable game
 	$widget(score) configure -text "Score: $game(score)"
 	$widget(cleared) configure -text "Cleared: $game(cleared)"
+	$widget(level) configure -text "Level: $game(level)"
 	$widget(lastaction) configure -text $game(lastaction)
 }
 
@@ -616,6 +621,39 @@ proc can_fall {} {
 	return [valid_move {*}$nextfall]
 }
 
+# true if the falling piece has spawned inside an existing piece
+proc block_out {} {
+	variable matrix
+	return [expr {![valid_move {*}$matrix(fallcenter)]}]
+}
+
+# true if the last piece locked entirely inside the buffer zone
+proc lock_out {} {
+	variable matrix
+	set cx [lindex $matrix(fallcenter) 0]
+	set cy [lindex $matrix(fallcenter) 1]
+	foreach {x y} $matrix(fallpiece) {
+		incr x $cx
+		incr y $cy
+		if {$y >= 0} {
+			return false
+		}
+	}
+	return true
+}
+
+# Game over, man!
+proc game_over {} {
+	variable game
+	variable widget
+	cancel_fall
+	cancel_lock
+	set game(locked) true
+	set game(lastaction) "GAME OVER"
+	$widget(matrix) itemconfigure empty -fill "red4"
+	update_stats
+}
+
 # GAME FLOW
 # the following functions are called at the beginning of each "phase",
 # and repeat until the game is over
@@ -642,7 +680,10 @@ proc gen_phase {} {
 		lset matrix(fallcenter) 1 [expr [lindex $matrix(fallcenter) 1] + 1]
 	}
 
-	# TODO check for block out (game over)
+	redraw
+	if {[block_out]} {
+		tailcall game_over
+	}
 
 	# if space is available, immediately fall one block down
 	# (As stated by the Tetris Guidelines.)
@@ -709,8 +750,11 @@ proc lock_piece {} {
 	$widget(matrix) dtag full empty
 
 	redraw
+	# if the falling piece landed entirely inside buffer zone, game over
+	if {[lock_out]} {
+		tailcall game_over
+	}
 	# TODO check for t-spins
-	# TODO check if locked out (then it's game over)
 
 	# XXX in multiplayer, this is when incoming attack lines would appear.
 	pattern_phase
