@@ -45,6 +45,7 @@ proc init {} {
 	# seed: seed given to "expr srand(n)" at new_game
 	# skyline: visible space of the buffer, in pixels
 	# fallms: milliseconds in between piece "falling" one step
+	# startfallms: fallms at level 1
 	# basefallms: "fallms" during normal play
 	# softdropms: "fallms" when soft dropping (generally basefallms/20)
 	# lockms: milliseconds after landing, after which piece is "locked"
@@ -60,6 +61,7 @@ proc init {} {
 		cellsize 25
 		seed 0
 		skyline 10
+		startfallms 1000
 		basefallms 1000
 		softdropms 50
 		fallms 1000
@@ -76,6 +78,8 @@ proc init {} {
 		score 0
 		cleared 0
 		level 1
+		levelcap 15
+		goal 10
 		b2b false
 	}
 
@@ -223,7 +227,7 @@ proc init {} {
 	# scoreboard (stats)
 	ttk::labelframe $widget(stats) -text STATS
 	ttk::label $widget(score) -text "Score: 0"
-	ttk::label $widget(cleared) -text "Cleared: 0"
+	ttk::label $widget(cleared) -text "Cleared: 0/0"
 	ttk::label $widget(lastaction) -text {} \
 				-wraplength [expr {4*$game(cellsize)}]
 	ttk::label $widget(level) -text "Level: 0"
@@ -286,9 +290,6 @@ proc new_game {} {
 
 	# reset game and matrix
 	array set game {
-		skyline 10
-		basefallms 1000
-		softdropms 50
 		fallms 1000
 		lockms 500
 		fallafter false
@@ -303,8 +304,11 @@ proc new_game {} {
 		score 0
 		cleared 0
 		level 1
+		goal 10
 		b2b false
 	}
+	set game(basefallms) $game(startfallms)
+	set game(softdropms) [expr {round($game(startfallms)/20)}]
 
 	array set matrix {
 		fallcenter {}
@@ -373,7 +377,7 @@ proc update_stats {} {
 	variable widget
 	variable game
 	$widget(score) configure -text "Score: $game(score)"
-	$widget(cleared) configure -text "Cleared: $game(cleared)"
+	$widget(cleared) configure -text "Cleared: $game(cleared)/$game(goal)"
 	$widget(level) configure -text "Level: $game(level)"
 	$widget(lastaction) configure -text $game(lastaction)
 }
@@ -654,6 +658,27 @@ proc game_over {} {
 	update_stats
 }
 
+# Level up!
+proc level_up {} {
+	variable game
+
+	if {$game(level) >= $game(levelcap)} {return}
+	incr game(level)
+	# XXX implements the Fixed Goal levelling system
+	set game(goal) [expr {$game(level) * 10}]
+
+	# speed up the game
+	# there's probably an interger-based way of calculating this...
+	set game(basefallms) [expr {round(
+					(0.8 - ($game(level) - 1) * 0.007)
+					** ($game(level) - 1)
+					* 1000)}]
+	set game(softdropms) [expr {round($game(basefallms)/20)}]
+	set game(fallms) $game(basefallms)
+	set game(softdropped) false
+	set game(lastaction) "Level Up!"
+}
+
 # GAME FLOW
 # the following functions are called at the beginning of each "phase",
 # and repeat until the game is over
@@ -838,7 +863,6 @@ proc clear_phase {} {
 	$widget(matrix) dtag cleared
 
 	# Eliminate
-	# TODO award points/levels based on $matrix(clearedlines)
 	set matrix(clearedlines) {}
 
 	complete_phase
@@ -878,7 +902,13 @@ proc shift_line {line} {
 
 # update stat counters, then return to gen_phase
 proc complete_phase {} {
+	variable game
+
+	if {$game(cleared) >= $game(goal)} {
+		level_up
+	}
 	update_stats
+
 	gen_phase
 }
 
