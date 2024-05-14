@@ -72,10 +72,11 @@ proc init {} {
 		nextqueue {}
 		piece {}
 		piecefacing {}
+		lastaction {}
 		score 0
 		cleared 0
 		level 1
-		b2b 0
+		b2b false
 	}
 
 	# info on the "board"- a matrix of cells
@@ -147,6 +148,7 @@ proc init {} {
 		stats .stats
 		score .stats.score
 		cleared .stats.cleared
+		lastaction .stats.lastaction
 		gamemenu .gamemenu
 		newgame .gamemenu.newgame
 		options .gamemenu.options
@@ -221,8 +223,11 @@ proc init {} {
 	ttk::labelframe $widget(stats) -text STATS
 	ttk::label $widget(score) -text "Score: 0"
 	ttk::label $widget(cleared) -text "Cleared: 0"
+	ttk::label $widget(lastaction) -text {} \
+				-wraplength [expr {4*$game(cellsize)}]
 	pack $widget(score) -fill x
 	pack $widget(cleared) -fill x
+	pack $widget(lastaction) -fill x
 
 	# game menu
 	ttk::labelframe $widget(gamemenu) -text MENU
@@ -290,10 +295,11 @@ proc new_game {} {
 		nextqueue {}
 		piece {}
 		piecefacing {}
+		lastaction {}
 		score 0
 		cleared 0
 		level 1
-		b2b 0
+		b2b false
 	}
 
 	array set matrix {
@@ -323,14 +329,14 @@ proc new_game {} {
 }
 
 # award points according to the Tetris scoring table
-proc award_points {action} {
+proc award_points {action {tspin false}} {
 	variable game
 	# TODO T-spins
 	switch -- $action {
-		single {set base 100}
-		double {set base 300}
-		triple {set base 400}
-		tetris {set base 800}
+		1 {set base 100 ; set actionstr "Single"}
+		2 {set base 300 ; set actionstr "Double"}
+		3 {set base 400 ; set actionstr "Triple"}
+		4 {set base 800 ; set actionstr "Tetris"}
 		softdrop {
 			incr game(score) 1
 			update_stats
@@ -342,6 +348,19 @@ proc award_points {action} {
 			return
 		}
 	}
+
+	set total [expr {$base * $game(level)}]
+	set actionstr "$actionstr\n($base x $game(level)"
+	if {$game(b2b)} {
+		set b2bbonus [expr {$total/2}]
+		set actionstr "Back-to-Back $actionstr + $b2bbonus"
+	} else {
+		set b2bbonus 0
+	}
+	incr total $b2bbonus
+	incr game(score) $total
+	set actionstr "$actionstr = $total)"
+	set game(lastaction) $actionstr
 }
 
 # update stat widgets
@@ -349,6 +368,8 @@ proc update_stats {} {
 	variable widget
 	variable game
 	$widget(score) configure -text "Score: $game(score)"
+	$widget(cleared) configure -text "Cleared: $game(cleared)"
+	$widget(lastaction) configure -text $game(lastaction)
 	# TODO lines cleared, last action, etc.
 }
 
@@ -387,6 +408,8 @@ proc rotate_piece {dir} {
 	}
 
 	# XXX wall kicks go here
+	# if a T piece manages to rotate to a valid position after five tries,
+	# and locks as a result, then it's a full (not mini) t-spin
 
 	# check if rotation has caused piece to "lift"
 	# (and therefore may cause it to go from locking to falling)
@@ -394,6 +417,8 @@ proc rotate_piece {dir} {
 		cancel_lock
 		set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
 	}
+	# TODO: if a T piece successfully rotates and can't fall,
+	# set a flag to check for t-spins during lock_piece
 }
 
 # attempt to move piece left or right
@@ -684,6 +709,7 @@ proc lock_piece {} {
 	$widget(matrix) dtag full empty
 
 	redraw
+	# TODO check for t-spins
 	# TODO check if locked out (then it's game over)
 
 	# XXX in multiplayer, this is when incoming attack lines would appear.
@@ -728,14 +754,22 @@ proc pattern_phase {} {
 		$widget(matrix) dtag checked
 	}
 
+	set linescleared [llength $matrix(clearedlines)] 
 	# track back-to-backs
-	if {[llength $matrix(clearedlines)] > 0} {
-		incr game(b2b)
-	} else {
-		# TODO don't reset b2b if t-spin occurred (but award no bonus)
-		set game(b2b) 0
+	if {$linescleared == 4} {
+		set game(b2b) true
+	} elseif {$linescleared > 0} {
+		# single, double or triple w/o t-spin ends a back-to-back
+		set game(b2b) false
 	}
-	# TODO if no lines are cleared, award T-spins early
+
+	# award points based on number of lines cleared
+	# TODO check for t-spins
+	if {$linescleared > 0} {
+		incr game(cleared) $linescleared
+		award_points $linescleared
+	}
+
 	clear_phase
 }
 
@@ -800,6 +834,7 @@ proc shift_line {line} {
 
 # update stat counters, then return to gen_phase
 proc complete_phase {} {
+	update_stats
 	gen_phase
 }
 
