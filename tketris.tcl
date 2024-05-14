@@ -58,6 +58,7 @@ proc init {} {
 	# locked: if true, player cannot input piece movements
 	array set game {
 		name Tketris
+		animate true
 		cellsize 25
 		seed -1
 		skyline 10
@@ -255,8 +256,12 @@ proc init {} {
 	ttk::labelframe $widget(gamemenu) -text MENU
 	button $widget(newgame) -text "New Game"\
 				-command [namespace code new_game]
-	button $widget(options) -text "Options" -command [namespace code {action_notify "Yeah, the line clear animation is slower on Windows. I haven't figured out why. I'll add a way to disable it later."}]
-	button $widget(about) -text "About" -command [namespace code {action_notify {(c) 2024 Rudy "dther" Dellomas III. Not authorised by TTC whatsoever. As-is, No Warranty, No Refunds.}}]
+	button $widget(options) -text "Options" -command [namespace code {
+		toggle_animation
+	}]
+	button $widget(about) -text "About" -command [namespace code {
+		action_notify {(c) 2024 Rudy "dther" Dellomas III. Not authorised by TTC whatsoever. As-is, No Warranty, No Refunds.}
+	}]
 	pack $widget(newgame) -fill x
 	pack $widget(options) -fill x
 	pack $widget(about) -fill x
@@ -291,6 +296,13 @@ proc init {} {
 	bind $widget(matrix) <<SoftDropPress>> [namespace code {soft_drop true}]
 	bind $widget(matrix) <<SoftDropRelease>> [namespace code {soft_drop false}]
 	bind $widget(matrix) <<HardDrop>> [namespace code {hard_drop}]
+}
+
+# TODO these will probably be removed at some point
+proc toggle_animation {} {
+	variable game
+	set game(animate) [expr !$game(animate)]
+	action_notify "Animation set to $game(animate). (i don't know why it's slow on windows)"
 }
 
 proc action_notify {str} {
@@ -945,15 +957,18 @@ proc shift_line {line} {
 	$widget(matrix) addtag moveup overlapping {*}[canvas_coord 0 $line]\
 					{*}[canvas_coord $matrix(width) $line]
 
-	# pshhh boring
-	#$widget(matrix) move movedown 0 $game(cellsize)
 	$widget(matrix) move moveup 0 [expr $game(cellsize) * -1 * $line]
 
-	# XXX animated for style points
-	for {set i 0} {$i < $game(cellsize)} {incr i} {
-		$widget(matrix) move movedown 0 1
-		after 1
-		update idletasks
+	if {!$game(animate)} {
+		# pshhh boring
+		$widget(matrix) move movedown 0 $game(cellsize)
+	} else {
+		# XXX animated for style points
+		for {set i 0} {$i < $game(cellsize)} {incr i} {
+			$widget(matrix) move movedown 0 1
+			after 1
+			update idletasks
+		}
 	}
 
 	$widget(matrix) dtag moveup full
