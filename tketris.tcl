@@ -247,6 +247,7 @@ proc init {} {
 	grid rowconfigure . 1 -weight 1
 
 	# ensure window is right size
+	wm title . $game(name)
 	wm withdraw .
 	wm resizable . 0 0
 	wm deiconify .
@@ -370,7 +371,6 @@ proc update_stats {} {
 	$widget(score) configure -text "Score: $game(score)"
 	$widget(cleared) configure -text "Cleared: $game(cleared)"
 	$widget(lastaction) configure -text $game(lastaction)
-	# TODO lines cleared, last action, etc.
 }
 
 # attempt to rotate a piece left (counter clockwise) or right (clockwise)
