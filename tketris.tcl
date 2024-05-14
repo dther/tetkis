@@ -59,7 +59,7 @@ proc init {} {
 	array set game {
 		name Tketris
 		cellsize 25
-		seed 0
+		seed -1
 		skyline 10
 		startfallms 1000
 		basefallms 1000
@@ -351,7 +351,12 @@ proc new_game {} {
 	update idletasks
 
 	# seed PRNG
-	expr {srand($game(seed))}
+	if {$game(seed) == -1} {
+		# harvest entropy from the decaying universe
+		expr {srand([clock milliseconds])}
+	} else {
+		expr {srand($game(seed))}
+	}
 	next_piece
 
 	focus $widget(matrix)
