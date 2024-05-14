@@ -255,8 +255,8 @@ proc init {} {
 	ttk::labelframe $widget(gamemenu) -text MENU
 	button $widget(newgame) -text "New Game"\
 				-command [namespace code new_game]
-	button $widget(options) -text "Options" -command {puts "TODO"}
-	button $widget(about) -text "About" -command {puts "TODO"}
+	button $widget(options) -text "Options" -command [namespace code {action_notify "Yeah, the line clear animation is slower on Windows. I haven't figured out why. I'll add a way to disable it later."}]
+	button $widget(about) -text "About" -command [namespace code {action_notify {(c) 2024 Rudy "dther" Dellomas III. Not authorised by TTC whatsoever. As-is, No Warranty, No Refunds.}}]
 	pack $widget(newgame) -fill x
 	pack $widget(options) -fill x
 	pack $widget(about) -fill x
@@ -291,6 +291,12 @@ proc init {} {
 	bind $widget(matrix) <<SoftDropPress>> [namespace code {soft_drop true}]
 	bind $widget(matrix) <<SoftDropRelease>> [namespace code {soft_drop false}]
 	bind $widget(matrix) <<HardDrop>> [namespace code {hard_drop}]
+}
+
+proc action_notify {str} {
+	variable game
+	set game(lastaction) $str
+	update_stats
 }
 
 # clear matrix, reseed PRNG, restart game
