@@ -284,50 +284,61 @@ proc init {} {
 	bind $widget(matrix) <<HardDrop>> [namespace code {hard_drop}]
 }
 
+# add previews for all pieces, hidden/revealed when needed
+# Each has two tags: "q$index$piece" and "preview"
+# This way, updating the preview is a simple process:
+# 1. $widget(preview) itemconfigure preview -state hidden
+# 2. $widget(preview) itemconfigure q$index$piece -state normal
+#    (for each piece in $game(nextqueue))
 proc init_previews {} {
 	variable widget
 	variable game
 	variable piece
-	# add previews for all pieces, hidden/revealed when needed
-	# Each has two tags: "q$index$piece" and "preview"
-	# This way, updating the preview is a simple process:
-	# 1. $widget(preview) itemconfigure preview -state hidden
-	# 2. $widget(preview) itemconfigure q$index$piece -state normal
-	#    (for each piece in $game(nextqueue))
-	set centerx [expr {[$widget(preview) cget -width]/2
-					- $game(cellsize) + 1}]
-	set centery [expr {[$widget(preview) cget -height]/2
-					- $game(cellsize)/2}]
 
-	set newpreview [list {index name centerx centery} {
+	set cx [expr {[$widget(preview) cget -width]/2 + 1}]
+	set cy [expr {[$widget(preview) cget -height]/2}]
+	init_preview_for_index 0 $cx $cy $game(cellsize)
+}
+
+# Initialises a preview for position $index in game(nextqueue),
+# drawing pieces in $widget(preview) centered at the position (cx, cy).
+# cellsize can be used to specify that the preview should be smaller.
+proc init_preview_for_index {index cx cy cellsize} {
+	variable widget
+
+	set newpreview [list {index name centerx centery cellsize} {
 		variable piece
 		variable widget
 		variable game
 		foreach {x y} $piece($name) {
 			$widget(preview) create rectangle \
-			[expr $centerx + $x * $game(cellsize)]\
-			[expr $centery + -$y * $game(cellsize)]\
-			[expr $centerx + ($x+1) * $game(cellsize)]\
-			[expr $centery + (-$y+1) * $game(cellsize)]\
+			[expr $centerx + $x * $cellsize]\
+			[expr $centery + -$y * $cellsize]\
+			[expr $centerx + ($x+1) * $cellsize]\
+			[expr $centery + (-$y+1) * $cellsize]\
 					-tags "preview q$index$name"\
 					-fill $piece(${name}color)\
 					-state hidden
 		}
 	} [namespace current]]
 
-	apply $newpreview 0 I $centerx $centery
+	# adjust cx and cy for piece I
+	set adjustedx [expr {$cx - $cellsize}]
+	set adjustedy [expr {$cy - $cellsize/2}]
+
+	apply $newpreview $index I $adjustedx $adjustedy $cellsize
 
 	# change the y offset for pieces that are two cells tall
-	set centery [expr [$widget(preview) cget -height]/2]
-	apply $newpreview 0 O $centerx $centery
+	set adjustedy $cy
+	apply $newpreview $index O $adjustedx $adjustedy $cellsize
 
 	# change the x offset for pieces that are 3 cells wide
-	set centerx [expr [$widget(preview) cget -width]/2 - $game(cellsize)/2]
-	apply $newpreview 0 T $centerx $centery
-	apply $newpreview 0 L $centerx $centery
-	apply $newpreview 0 J $centerx $centery
-	apply $newpreview 0 S $centerx $centery
-	apply $newpreview 0 Z $centerx $centery
+	set adjustedx [expr {$cx - $cellsize/2}]
+	apply $newpreview $index T $adjustedx $adjustedy $cellsize
+	apply $newpreview $index L $adjustedx $adjustedy $cellsize
+	apply $newpreview $index J $adjustedx $adjustedy $cellsize
+	apply $newpreview $index S $adjustedx $adjustedy $cellsize
+	apply $newpreview $index Z $adjustedx $adjustedy $cellsize
 }
 
 proc action_notify {str} {
