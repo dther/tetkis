@@ -548,7 +548,7 @@ proc move_piece {dir} {
 			set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
 		} elseif {![can_fall] && $game(fallafter) != false} {
 			cancel_fall
-			lock_phase
+			tailcall lock_phase
 		}
 	} else {
 		bell
@@ -586,8 +586,8 @@ proc hard_drop {} {
 	while {[can_fall]} {
 		lset matrix(fallcenter) 1 [expr [lindex $matrix(fallcenter) 1] - 1]
 		award_points harddrop
-		redraw
 	}
+	redraw
 	lock_piece
 }
 
@@ -783,7 +783,6 @@ proc gen_phase {} {
 	# place the center of the piece at $matrix(generate)
 	set matrix(fallcenter) $matrix(GENERATE)
 	set matrix(fallpiece) $piece($game(piece))
-	redraw
 	if {[block_out]} {
 		tailcall game_over
 	}
@@ -862,7 +861,7 @@ proc lock_piece {} {
 	# TODO check for t-spins
 
 	# XXX in multiplayer, this is when incoming attack lines would appear.
-	pattern_phase
+	tailcall pattern_phase
 }
 
 # check for line clears, award points
