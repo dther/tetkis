@@ -304,12 +304,9 @@ proc init_previews {} {
 # drawing pieces in $widget(preview) centered at the position (cx, cy).
 # cellsize can be used to specify that the preview should be smaller.
 proc init_preview_for_index {index cx cy cellsize} {
-	variable widget
-
 	set newpreview [list {index name centerx centery cellsize} {
-		variable piece
 		variable widget
-		variable game
+		variable piece
 		foreach {x y} $piece($name) {
 			$widget(preview) create rectangle \
 			[expr $centerx + $x * $cellsize]\
