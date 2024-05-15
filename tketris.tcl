@@ -55,7 +55,8 @@ proc init {} {
 	array set game {
 		name Tketris
 		cellsize 25
-		seed -1
+		queuesize 6
+		seed 0
 		skyline 10
 		startfallms 1000
 		basefallms 1000
@@ -584,18 +585,28 @@ proc hard_drop {} {
 	lock_piece
 }
 
-# add new piece to the queue
+# returns the first element in a list variable after deleting it
+proc lpop {name} {
+	upvar $name list 
+	set popped [lindex $list 0]
+	set list [lrange $list 1 end]
+	return $popped
+}
+
+# keep the queue filled to $game(queuesize)
 proc next_piece {} {
 	variable game
 	variable piece
 	variable widget
 
-	# TODO make this a queue to allow multiple piece previews
 	# TODO implement bag randomisation
-	set rand [expr round(rand() * 7) % 7]
-	set game(nextqueue) [lindex $piece(list) $rand]
+	while {[llength $game(nextqueue)] < $game(queuesize)} {
+		set rand [expr round(rand() * 7) % 7]
+		lappend game(nextqueue) [lindex $piece(list) $rand]
+	}
 
 	# FIXME draw preview (broken due to changes in canvas logic)
+	puts "Coming up next: $game(nextqueue)"
 }
 
 # update widget(matrix) based on new game state
@@ -769,7 +780,7 @@ proc gen_phase {} {
 	cancel_fall
 	cancel_lock
 
-	set game(piece) $game(nextqueue)
+	set game(piece) [lpop game(nextqueue)]
 	set game(piecefacing) north
 	next_piece
 
