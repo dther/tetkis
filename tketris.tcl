@@ -384,7 +384,7 @@ proc new_game {} {
 	} else {
 		expr {srand($game(seed))}
 	}
-	next_piece
+	refill_next_queue
 
 	focus $widget(matrix)
 	gen_phase
@@ -593,20 +593,25 @@ proc lpop {name} {
 	return $popped
 }
 
-# keep the queue filled to $game(queuesize)
-proc next_piece {} {
+# keep the Next Queue filled to $game(queuesize)
+proc refill_next_queue {} {
 	variable game
 	variable piece
 	variable widget
 
 	# TODO implement bag randomisation
 	while {[llength $game(nextqueue)] < $game(queuesize)} {
-		set rand [expr round(rand() * 7) % 7]
-		lappend game(nextqueue) [lindex $piece(list) $rand]
+		lappend game(nextqueue) [new_piece]
 	}
 
 	# FIXME draw preview (broken due to changes in canvas logic)
 	puts "Coming up next: $game(nextqueue)"
+}
+
+# Produces a new piece to feed the nextqueue.
+proc new_piece {} {
+	variable piece
+	return [lindex $piece(list) [expr round(rand() * 7) % 7]]
 }
 
 # update widget(matrix) based on new game state
@@ -782,7 +787,7 @@ proc gen_phase {} {
 
 	set game(piece) [lpop game(nextqueue)]
 	set game(piecefacing) north
-	next_piece
+	refill_next_queue
 
 	# place the center of the piece at $matrix(generate)
 	set matrix(fallcenter) $matrix(GENERATE)
