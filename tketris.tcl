@@ -299,79 +299,35 @@ proc init_previews {} {
 	set centery [expr {[$widget(preview) cget -height]/2
 					- $game(cellsize)/2}]
 
-	foreach {x y} $piece(I) {
-		$widget(preview) create rectangle \
-		[expr $centerx + $x * $game(cellsize)]\
-		[expr $centery + -$y * $game(cellsize)]\
-		[expr $centerx + ($x+1) * $game(cellsize)]\
-		[expr $centery + (-$y+1) * $game(cellsize)]\
-				-tags {preview q0I}\
-				-state hidden
-	}
+	set newpreview [list {index name centerx centery} {
+		variable piece
+		variable widget
+		variable game
+		foreach {x y} $piece($name) {
+			$widget(preview) create rectangle \
+			[expr $centerx + $x * $game(cellsize)]\
+			[expr $centery + -$y * $game(cellsize)]\
+			[expr $centerx + ($x+1) * $game(cellsize)]\
+			[expr $centery + (-$y+1) * $game(cellsize)]\
+					-tags "preview q$index$name"\
+					-fill $piece(${name}color)\
+					-state hidden
+		}
+	} [namespace current]]
+
+	apply $newpreview 0 I $centerx $centery
 
 	# change the y offset for pieces that are two cells tall
 	set centery [expr [$widget(preview) cget -height]/2]
-	foreach {x y} $piece(O) {
-		$widget(preview) create rectangle \
-			[expr $centerx + $x * $game(cellsize)]\
-			[expr $centery + -$y * $game(cellsize)]\
-			[expr $centerx + ($x+1) * $game(cellsize)]\
-			[expr $centery + (-$y+1) * $game(cellsize)]\
-				-tags {preview q0O}\
-				-state hidden
-	}
+	apply $newpreview 0 O $centerx $centery
 
 	# change the x offset for pieces that are 3 cells wide
 	set centerx [expr [$widget(preview) cget -width]/2 - $game(cellsize)/2]
-	foreach {x y} $piece(T) {
-		$widget(preview) create rectangle \
-			[expr $centerx + $x * $game(cellsize)]\
-			[expr $centery + -$y * $game(cellsize)]\
-			[expr $centerx + ($x+1) * $game(cellsize)]\
-			[expr $centery + (-$y+1) * $game(cellsize)]\
-				-tags {preview q0T}\
-				-state hidden
-	}
-
-	foreach {x y} $piece(L) {
-		$widget(preview) create rectangle \
-			[expr $centerx + $x * $game(cellsize)]\
-			[expr $centery + -$y * $game(cellsize)]\
-			[expr $centerx + ($x+1) * $game(cellsize)]\
-			[expr $centery + (-$y+1) * $game(cellsize)]\
-				-tags {preview q0L}\
-				-state hidden
-	}
-
-	foreach {x y} $piece(J) {
-		$widget(preview) create rectangle \
-			[expr $centerx + $x * $game(cellsize)]\
-			[expr $centery + -$y * $game(cellsize)]\
-			[expr $centerx + ($x+1) * $game(cellsize)]\
-			[expr $centery + (-$y+1) * $game(cellsize)]\
-				-tags {preview q0J}\
-				-state hidden
-	}
-
-	foreach {x y} $piece(S) {
-		$widget(preview) create rectangle \
-				[expr $centerx + $x * $game(cellsize)]\
-				[expr $centery + -$y * $game(cellsize)]\
-				[expr $centerx + ($x+1) * $game(cellsize)]\
-				[expr $centery + (-$y+1) * $game(cellsize)]\
-				-tags {preview q0S}\
-				-state hidden
-	}
-
-	foreach {x y} $piece(Z) {
-		$widget(preview) create rectangle \
-				[expr $centerx + $x * $game(cellsize)]\
-				[expr $centery + -$y * $game(cellsize)]\
-				[expr $centerx + ($x+1) * $game(cellsize)]\
-				[expr $centery + (-$y+1) * $game(cellsize)]\
-				-tags {preview q0Z}\
-				-state hidden
-	}
+	apply $newpreview 0 T $centerx $centery
+	apply $newpreview 0 L $centerx $centery
+	apply $newpreview 0 J $centerx $centery
+	apply $newpreview 0 S $centerx $centery
+	apply $newpreview 0 Z $centerx $centery
 }
 
 proc action_notify {str} {
