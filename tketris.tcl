@@ -188,8 +188,9 @@ proc init {} {
 			-takefocus true
 
 	set originy [$widget(matrix) cget -height]
+	set visiblerows [expr {$matrix(HEIGHT) - $matrix(BUFFER) + 1}]
 	# initialise grid which will be filled in by pieces during gameplay
-	for {set y 0} {$y < $matrix(HEIGHT)} {incr y} {
+	for {set y 0} {$y < $visiblerows} {incr y} {
 		for {set x 0} {$x < $matrix(WIDTH)} {incr x} {
 			$widget(matrix) create rectangle\
 					[expr {$x * $game(cellsize)} + 1]\
