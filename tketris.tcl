@@ -59,7 +59,7 @@ proc init {} {
 	array set game {
 		name Tketris
 		cellsize 25
-		queuesize 6
+		queuesize 7
 		seed 0
 		maxlockmoves 15
 		bagrandom true
@@ -219,12 +219,12 @@ proc init {} {
 	# piece preview
 	ttk::labelframe $widget(previewlabel) -text NEXT
 	canvas $widget(preview) \
-			-width [expr {$game(cellsize) * 4 + 1}]\
-			-height [expr {$game(cellsize) * 4}]\
+			-width [expr {$game(cellsize) * 4}]\
 			-background grey
+			;#-height [expr {$game(cellsize) * 14}]\
 
 	init_previews
-	pack $widget(preview) -padx 2 -pady 2
+	pack $widget(preview) -padx 2 -pady 2 -expand 1 -fill both
 
 	# scoreboard (stats)
 	ttk::labelframe $widget(stats) -text STATS
@@ -253,10 +253,10 @@ proc init {} {
 	pack $widget(about) -fill x
 
 	# place elements
-	grid $widget(matrix) -row 0 -column 0 -rowspan 3 -padx 2 -pady 2
-	grid $widget(previewlabel) -row 0 -column 1 -padx 2 -pady 2 -sticky new
-	grid $widget(stats) -row 1 -column 1 -padx 2 -pady 2 -sticky new
-	grid $widget(gamemenu) -row 2 -column 1 -padx 2 -pady 2 -sticky sew
+	grid $widget(matrix) -row 0 -column 1 -rowspan 3 -padx 2 -pady 2
+	grid $widget(previewlabel) -row 0 -column 2 -rowspan 2 -padx 2 -pady 2 -sticky nsew
+	grid $widget(gamemenu) -row 2 -column 2 -padx 2 -pady 2 -sticky nsew
+	grid $widget(stats) -row 1 -column 0 -padx 2 -pady 2 -sticky new
 	grid rowconfigure . 1 -weight 1
 
 	# ensure window is right size
@@ -295,9 +295,30 @@ proc init_previews {} {
 	variable game
 	variable piece
 
-	set cx [expr {[$widget(preview) cget -width]/2 + 1}]
-	set cy [expr {[$widget(preview) cget -height]/2}]
-	init_preview_for_index 0 $cx $cy $game(cellsize)
+	# XXX Getting this to look right was a LOT of trial and error.
+	set icy [expr {round([$widget(preview) cget -height]/5)}]
+
+	set cx [expr {$game(cellsize) * 2}]
+	set cy [expr {round($game(cellsize) * 1.5)}]
+	init_preview_for_index 0 $cx $cy [expr {$game(cellsize) * 0.95}]
+
+	incr cy $icy
+	init_preview_for_index 1 $cx $cy [expr {$game(cellsize) * 0.66}]
+
+	incr cy $icy
+	init_preview_for_index 2 $cx $cy [expr {$game(cellsize) * 0.66}]
+
+	incr cy $icy
+	init_preview_for_index 3 $cx $cy [expr {$game(cellsize) * 0.66}]
+
+	incr cy $icy
+	init_preview_for_index 4 $cx $cy [expr {$game(cellsize) * 0.5}]
+
+	incr cy $icy
+	init_preview_for_index 5 $cx $cy [expr {$game(cellsize) * 0.5}]
+
+	incr cy $icy
+	init_preview_for_index 6 $cx $cy [expr {$game(cellsize) * 0.5}]
 }
 
 # Initialises a preview for position $index in game(nextqueue),
