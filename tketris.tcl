@@ -54,7 +54,6 @@ proc init {} {
 	# locked: if true, player cannot input piece movements
 	array set game {
 		name Tketris
-		animate true
 		cellsize 25
 		seed -1
 		skyline 10
@@ -285,13 +284,6 @@ if 0 {
 	bind $widget(matrix) <<SoftDropPress>> [namespace code {soft_drop true}]
 	bind $widget(matrix) <<SoftDropRelease>> [namespace code {soft_drop false}]
 	bind $widget(matrix) <<HardDrop>> [namespace code {hard_drop}]
-}
-
-# TODO these will probably be removed at some point
-proc toggle_animation {} {
-	variable game
-	set game(animate) [expr !$game(animate)]
-	action_notify "Animation set to $game(animate). (i don't know why it's slow on windows)"
 }
 
 proc action_notify {str} {
