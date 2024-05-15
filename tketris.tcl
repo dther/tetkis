@@ -39,6 +39,8 @@ proc init {} {
 	# name: name of app
 	# cellsize: visual size of cells in pixels
 	# seed: seed given to "expr srand(n)" at new_game
+	# bagrandom: if true, pick new pieces with the "bag system"
+	# bag: virtual bag of 7 pieces, refilled when empty
 	# skyline: visible space of the buffer, in pixels
 	# fallms: milliseconds in between piece "falling" one step
 	# startfallms: fallms at level 1
@@ -57,6 +59,8 @@ proc init {} {
 		cellsize 25
 		queuesize 6
 		seed 0
+		bagrandom true
+		bag {}
 		skyline 10
 		startfallms 1000
 		basefallms 1000
@@ -359,6 +363,7 @@ proc new_game {} {
 		softdropping false
 		softdropped false
 		locked true
+		bag {}
 		nextqueue {}
 		piece {}
 		piecefacing {}
@@ -599,7 +604,6 @@ proc refill_next_queue {} {
 	variable piece
 	variable widget
 
-	# TODO implement bag randomisation
 	while {[llength $game(nextqueue)] < $game(queuesize)} {
 		lappend game(nextqueue) [new_piece]
 	}
@@ -610,8 +614,33 @@ proc refill_next_queue {} {
 
 # Produces a new piece to feed the nextqueue.
 proc new_piece {} {
+	variable game
 	variable piece
-	return [lindex $piece(list) [expr round(rand() * 7) % 7]]
+
+	if {!$game(bagrandom)} {
+		return [lindex $piece(list) [expr round(rand() * 7) % 7]]
+	}
+
+	if {[llength $game(bag)] == 0} {
+		refill_bag
+	}
+	return [lpop game(bag)]
+}
+
+# refill the bag with 7 pieces, then perform fischer-yates shuffle
+proc refill_bag {} {
+	variable game
+	variable piece
+	set game(bag) $piece(list)
+
+	for {set i [llength $game(bag)]} {$i > 1} {incr i -1} {
+		set rand [expr {round(rand() * $i) % $i}]
+		set swap [expr {$i - 1}]
+		if {$swap == $rand} {continue}
+		set buf [lindex $game(bag) $swap]
+		lset game(bag) $swap [lindex $game(bag) $rand]
+		lset game(bag) $rand $buf
+	}
 }
 
 # update widget(matrix) based on new game state
