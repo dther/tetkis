@@ -3,24 +3,19 @@
 # tketris.tcl
 # (c) 2024 Rudy Dellomas III <dther+tketris@dther.xyz>
 #
-# Tketris: A simple Tetris clone in Tcl/Tk 8.6 <=
-# The relaxing, if sometimes incredibly unfair, block stacking game.
+# Tketris: A simple Tetris clone for Tcl/Tk 8.6 <=
 # Not affiliated with The Tetris Company whatsoever. Name subject to change.
 #
-# Terminology from the 2009 Tetris Guidelines will be used, but a full
-# implementation of said guidelines is not a design goal. However,
-# it *is* a design goal to make such an implementation relatively simple,
-# should someone wish to do so.
-# (If you do, reach out! I'll add an option for it or something.)
+# TODO apply a software license
 #
-# This game attempts to implement "classic mode" Tetris. In essence:
-# - No bag randomisation (possible to get a hundred S and Z blocks in a row)
-# - No complex rotation logic (wall kicks etc.)
-# - Simplified "piece locking" logic
-# - No "hold" piece
+# Feature implementation is guided by the 2009 Tetris Guidelines,
+# but occasionally departs from it for reasons of pragmatism.
 #
-# This roughly imitates NES/Gameboy Tetris,
-# and is the style of Tetris most people are familiar of.
+# I hope to implement game modes for both "Classic" Tetris (NES/Gameboy style)
+# as well as modern SRS-style Tetris, as well as provide room to implement
+# non-official game extensions found in popular fan made Tetris clones,
+# such as TETR.IO or Jstris.
+# Please reach out if you'd like to lend a hand!
 #
 # 2009 TETRIS DESIGN GUIDELINE AVAILABLE HERE:
 # https://archive.org/download/2009-tetris-variant-concepts_202201/2009%20Tetris%20Design%20Guideline.pdf
@@ -39,6 +34,7 @@ proc init {} {
 	variable widget
 	variable matrix
 
+	# TODO separate options from game state
 	# constants + settings
 	# name: name of app
 	# cellsize: visual size of cells in pixels
@@ -85,19 +81,20 @@ proc init {} {
 	}
 
 	# info on the "board"- a matrix of cells
-	# coordinates are relative to the top left fully visible cell,
+	# coordinates are relative to the bottom left cell,
 	# which is x,y:{0 0}.
-	# height + width: visible dimensions of game area (0 > x,y > h,w)
-	# buffer: height of buffer zone (y < 0)
-	# generate: the first area to try generating a new piece (left-center)
+	# HEIGHT: total height including buffer zone
+	# WIDTH: width of play field
+	# BUFFER: first row in the buffer
+	# GENERATE: the first area to try generating a new piece (left-center)
 	# fallcenter: rotational center of current falling piece
 	# fallpiece: cells taken up by the falling piece, relative to center
 	# clearedlines: lines that are full and marked for deletion
 	array set matrix {
-		height 20
-		width 10
-		buffer 20
-		generate {4 -1}
+		HEIGHT 40
+		WIDTH 10
+		BUFFER 20
+		GENERATE {4 20}
 		fallcenter {}
 		fallpiece {}
 		clearedlines {}
@@ -115,6 +112,7 @@ proc init {} {
 	# All pieces except I and O have the same offset table.
 	# I is a special case, and has its own offset table.
 	# O has no stored rotations and no offsets. It cannot rotate.
+
 	array set piece [list \
 		list {L J I O S Z T}\
 		facings {north east south west}\
@@ -125,39 +123,39 @@ proc init {} {
 		Scolor green\
 		Zcolor red\
 		Tcolor magenta\
-		O {0 0  1 0  0 -1  1 -1}\
-		I {0 0  -1 0  1 0  2 0}\
-		T {0 0  1 0  -1 0  0 -1}\
-		L {0 0  1 0  -1 0  1 -1}\
-		J {0 0  1 0  -1 0  -1 -1}\
-		S {0 0  -1 0  0 -1 1 -1}\
-		Z {0 0  1 0  0 -1  -1 -1}\
-		eastI {0 0  0 -1  0 1  0 2}\
-		eastT {0 0  0 -1  0 1  1 0}\
-		eastL {0 0  0 -1  0 1  1 1}\
-		eastJ {0 0  0 -1  0 1  1 -1}\
-		eastS {0 0  0 -1  1 0  1 1}\
-		eastZ {0 0  0 1  1 0  1 -1}\
-		southI {0 0  -1 0  1 0  -2 0}\
-		southT {0 0  1 0  -1 0  0 1}\
-		southL {0 0  1 0  -1 0  -1 1}\
-		southJ {0 0  1 0  -1 0  1 1}\
-		southS {0 1  -1 1  0 0  1 0}\
-		southZ {0 1  1 1  0 0  -1 0}\
-		westI {0 0  0 -1  0 -2  0 1}\
-		westT {0 0  0 -1  0 1  -1 0}\
-		westL {0 0  0 -1  0 1  -1 -1}\
-		westJ {0 0  0 -1  0 1  -1 1}\
-		westS {-1 0  -1 -1  0 0  0 1}\
-		westZ {-1 0  -1 1  0 0  0 -1}\
+		O {0 0  1 0  0 1  1 1}\
+		I {0 0 -1 0  1 0  2 0}\
+		T {0 0  1 0 -1 0  0 1}\
+		L {0 0  1 0 -1 0  1 1}\
+		J {0 0  1 0 -1 0 -1 1}\
+		S {0 0 -1 0  0 1  1 1}\
+		Z {0 0  1 0  0 1 -1 1}\
+		eastI {0 0  0  1  0 -1  0 -2}\
+		eastT {0 0  0  1  0 -1  1  0}\
+		eastL {0 0  0  1  0 -1  1 -1}\
+		eastJ {0 0  0  1  0 -1  1  1}\
+		eastS {0 0  0  1  1  0  1 -1}\
+		eastZ {0 0  0 -1  1  0  1  1}\
+		southI {0 0 -1 0   1 0  -2  0}\
+		southT {0 0  1 0  -1 0   0 -1}\
+		southL {0 0  1 0  -1 0  -1 -1}\
+		southJ {0 0  1 0  -1 0   1 -1}\
+		southS {0 -1 -1 -1  0 0  1 0}\
+		southZ {0 -1  1 -1  0 0 -1 0}\
+		westI {0 0  0 1  0 2    0 -1}\
+		westT {0 0  0 1  0 -1  -1 0}\
+		westL {0 0  0 1  0 -1  -1 1}\
+		westJ {0 0  0 1  0 -1  -1 -1}\
+		westS {-1 0  -1 1  0 0  0 -1}\
+		westZ {-1 0  -1 -1  0 0  0 1}\
 		northoffset {{0 0} {0 0}  {0 0}  {0 0}  {0 0}}\
-		eastoffset  {{0 0} {1 0}  {1 1}  {0 -2} {1 -2}}\
+		eastoffset  {{0 0} {1 0}  {1 -1}  {0 2} {1 2}}\
 		southoffset {{0 0} {0 0}  {0 0}  {0 0}  {0 0}}\
-		westoffset  {{0 0} {-1 0} {-1 1} {0 -2} {-1 -2}}\
-		Inorthoffset {{0 0}   {-1 0} {2 0}   {-1 0} {2 0}}\
-		Ieastoffset  {{-1 0}  {0 0}  {0 0}   {0 -1} {0 2}}\
-		Isouthoffset {{-1 -1} {1 -1} {-2 -1} {1 0}  {-2 0}}\
-		Iwestoffset  {{0 -1}  {0 -1} {0 -1}  {0 1}  {0 -2}}\
+		westoffset  {{0 0} {-1 0} {-1 -1} {0 2} {-1 2}}\
+		Inorthoffset {{0 0}   {-1 0} {2 0} {-1 0} {2 0}}\
+		Ieastoffset  {{-1 0}  {0 0}  {0 0} {0 1} {0 -2}}\
+		Isouthoffset {{-1 1} {1 1} {-2 1} {1 0}  {-2 0}}\
+		Iwestoffset  {{0 1}  {0 1} {0 1}  {0 -1}  {0 2}}\
 	]
 
 	# UI elements
@@ -179,45 +177,32 @@ proc init {} {
 	# matrix: game area
 	canvas $widget(matrix)\
 			-height [expr {
-					$matrix(height) * $game(cellsize)
+					($matrix(HEIGHT) - $matrix(BUFFER))
+					* $game(cellsize)
 					+ $game(skyline)
 				}]\
 			-width [expr {
-					$matrix(width) * $game(cellsize)
+					$matrix(WIDTH) * $game(cellsize)
 					+ 1
 				}]\
 			-background grey\
 			-takefocus true
 
-	# draw the buffer area just above the play space
-	# the player can move pieces around in this area, but if a piece gets
-	# locked here, it's game over
-	for {set x 0} {$x < $matrix(width)} {incr x} {
-		set y -1
-		$widget(matrix) create rectangle\
-				[expr {$x * $game(cellsize)} + 1]\
-				[expr {($y) * $game(cellsize)
-					+ $game(skyline)}]\
-				[expr {($x + 1) * $game(cellsize)}\
-					+ 1]\
-				[expr {($y + 1) * $game(cellsize)
-					+ $game(skyline)}]\
-				-outline "dark grey"\
-				-tags {empty buffer cell}
-	}
-
+	set originy [$widget(matrix) cget -height]
 	# initialise grid which will be filled in by pieces during gameplay
-	for {set y 0} {$y < $matrix(height)} {incr y} {
-		for {set x 0} {$x < $matrix(width)} {incr x} {
+	for {set y 0} {$y < $matrix(HEIGHT)} {incr y} {
+		for {set x 0} {$x < $matrix(WIDTH)} {incr x} {
 			$widget(matrix) create rectangle\
 					[expr {$x * $game(cellsize)} + 1]\
-					[expr {($y) * $game(cellsize)
-						+ $game(skyline)}]\
+					[expr {$originy - (
+						($y) * $game(cellsize))
+					}]\
 					[expr {($x + 1) * $game(cellsize)}\
 						+ 1]\
-					[expr {($y + 1) * $game(cellsize)
-						+ $game(skyline)}]\
-					-tags {empty matrix cell}
+					[expr {$originy - (
+						($y + 1) * $game(cellsize))
+					}]\
+					-tags "cell ($x,$y)"
 		}
 	}
 
@@ -227,7 +212,10 @@ proc init {} {
 			-width [expr {$game(cellsize) * 4}]\
 			-height [expr {$game(cellsize) * 4}]\
 			-background grey
-	# preview is a 4x4 grid
+
+	# TODO add graphics for all pieces, and simply hide/reveal them
+	# as they appear in the queue
+if 0 {
 	for {set y 0} {$y < 4} {incr y} {
 		for {set x 0} {$x < 4} {incr x} {
 			$widget(preview) create rectangle\
@@ -235,9 +223,10 @@ proc init {} {
 					[expr {$y * $game(cellsize) + 1}]\
 					[expr {($x + 1) * $game(cellsize) + 1}]\
 					[expr {($y + 1) * $game(cellsize) + 1}]\
-					-tags {empty cell}
+					-tags {cell}
 		}
 	}
+}
 	pack $widget(preview) -padx 2 -pady 2
 
 	# scoreboard (stats)
@@ -311,6 +300,52 @@ proc action_notify {str} {
 	update_stats
 }
 
+# initialise matrix data structure
+# EMPTYROW: a list of length $matrix(WIDTH) containing empty strings ({})
+proc reset_matrix {} {
+	variable matrix
+
+	array set matrix {
+		fallcenter {}
+		fallpiece {}
+		clearedlines {}
+	}
+	set matrix(EMPTYROW) [lrepeat $matrix(WIDTH) {}]
+	for {set y 0} {$y < $matrix(HEIGHT)} {incr y} {
+		set matrix(row$y) $matrix(EMPTYROW)
+	}
+}
+
+# returns true if $matrix(row$y) is empty
+proc matrix_row_empty {y} {
+	variable matrix
+	foreach cell $matrix(row$y) {
+		if {$cell != {}} {return false}
+	}
+	return true
+}
+
+# delete lines named in $matrix(clearedlines),
+# shifting down rows above to fill gaps
+proc matrix_clear_lines {} {
+	variable matrix
+
+	# start at the top (so as to avoid shifting higher cleared lines)
+	set hitlist [lsort -integer -decreasing $matrix(clearedlines)]
+	foreach line $hitlist {
+		for {set y $line} {$y < $matrix(HEIGHT)} {incr y} {
+			set above [expr {$y + 1}]
+			if {$above >= $matrix(HEIGHT)} {
+				set rowabove $matrix(EMPTYROW)
+			} else {
+				set rowabove $matrix(row$above)
+			}
+			set matrix(row$y) $rowabove
+		}
+	}
+	set matrix(clearedlines) {}
+}
+
 # clear matrix, reseed PRNG, restart game
 proc new_game {} {
 	variable game
@@ -343,24 +378,10 @@ proc new_game {} {
 	set game(basefallms) $game(startfallms)
 	set game(softdropms) [expr {round($game(startfallms)/20)}]
 
-	array set matrix {
-		fallcenter {}
-		fallpiece {}
-		clearedlines {}
-	}
-
 	# reset all cells
-	# ... really used a lot of tags here...
-	$widget(matrix) addtag empty withtag cell
-	$widget(matrix) dtag cell falling
-	$widget(matrix) dtag cell full
-	$widget(matrix) dtag cell cleared
-	$widget(matrix) dtag cell checked
-	$widget(matrix) dtag cell moveup
-	$widget(matrix) dtag cell movedown
+	reset_matrix
 	$widget(matrix) itemconfigure cell -fill {}
 	update_stats
-	update idletasks
 
 	# seed PRNG
 	if {$game(seed) == -1} {
@@ -480,8 +501,6 @@ proc rotate_piece {dir} {
 # https://tetris.wiki/Super_Rotation_System#How_Guideline_SRS_Really_Works
 # 
 # Note the following differences:
-# - The coordinate system in Tketris has the y coordinated inverted,
-#   such that positive y is downwards.
 # - Piece facings are notated as described in the Tetris Guidelines:
 #   0 = north, R = east, 2 = south, L = west.
 proc get_piece_kicks {piecename currentfacing newfacing} {
@@ -565,7 +584,7 @@ proc hard_drop {} {
 	cancel_fall
 	cancel_lock
 	while {[can_fall]} {
-		lset matrix(fallcenter) 1 [expr [lindex $matrix(fallcenter) 1] + 1]
+		lset matrix(fallcenter) 1 [expr [lindex $matrix(fallcenter) 1] - 1]
 		award_points harddrop
 		redraw
 	}
@@ -578,33 +597,12 @@ proc next_piece {} {
 	variable piece
 	variable widget
 
-	# TODO consider making this a queue
+	# TODO make this a queue to allow multiple piece previews
+	# TODO implement bag randomisation
 	set rand [expr round(rand() * 7) % 7]
 	set game(nextqueue) [lindex $piece(list) $rand]
 
-	# draw preview
-	$widget(preview) itemconfigure preview -fill {}
-	tag_piece $widget(preview) preview {1 2 preview} $piece($game(nextqueue))
-	$widget(preview) itemconfigure preview -fill $piece($game(nextqueue)color)
-}
-
-# convert a matrix coordinate into a coordinate inside $widget(canvas)
-# approx. centered on the corresponding visual cell
-proc canvas_coord {x y {canvas .matrix}} {
-	variable game
-	variable widget
-	if {$canvas != $widget(matrix)} {
-		# so that this can be reused for the preview. a bit of a hack
-		return [list [expr {round($x * $game(cellsize)
-					+ ($game(cellsize)/2))}]\
-			[expr {round(($y * $game(cellsize))\
-					+ ($game(cellsize)/2))}]]
-	}
-	return [list [expr {round($x * $game(cellsize)
-				+ ($game(cellsize)/2))}]\
-		[expr {round(($y * $game(cellsize))\
-				+ ($game(cellsize)/2))\
-				+ $game(skyline)}]]
+	# FIXME draw preview (broken due to changes in canvas logic)
 }
 
 # update widget(matrix) based on new game state
@@ -614,12 +612,32 @@ proc redraw {} {
 	variable widget
 	variable piece
 
-	# redraw the falling piece
-	if {!$game(locked)} {
-		$widget(matrix) itemconfigure falling -fill {}
-		tag_piece $widget(matrix) \
-			falling $matrix(fallcenter) $matrix(fallpiece)
-		$widget(matrix) itemconfigure falling -fill $piece($game(piece)color)
+	# TODO this is quite a heavy operation. need to start profiling
+	# tag cells in matrix
+	for {set y 0} {$y < $matrix(HEIGHT)} {incr y} {
+		for {set x 0} {$x < $matrix(WIDTH)} {incr x} {
+			set cell [lindex $matrix(row$y) $x]
+			if {$cell != {}} {
+				$widget(matrix) itemconfigure ($x,$y)\
+						-tags "($x,$y) $cell cell"
+			} else {
+				$widget(matrix) itemconfigure ($x,$y)\
+						-tags "($x,$y) empty cell"
+			}
+		}
+	}
+
+	# tag falling piece
+	$widget(matrix) itemconfigure falling -fill {}
+	tag_piece $widget(matrix) \
+		falling $matrix(fallcenter) $matrix(fallpiece)
+
+	# apply colors
+	$widget(matrix) itemconfigure empty -fill {}
+	$widget(matrix) itemconfigure falling -fill $piece($game(piece)color)
+	foreach piecetag $piece(list) {
+		$widget(matrix) itemconfigure $piecetag \
+				-fill $piece(${piecetag}color)
 	}
 }
 
@@ -632,7 +650,7 @@ proc tag_piece {canvas tag center piece} {
 	foreach {x y} $piece {
 		set x [expr ($cx + $x)]
 		set y [expr ($cy + $y)]
-		$canvas addtag $tag closest {*}[canvas_coord $x $y $canvas]
+		$canvas addtag $tag withtag "($x,$y)"
 	}
 }
 
@@ -648,7 +666,7 @@ proc valid_move {nx ny {piece {}}} {
 	foreach {px py} $piece {
 		set x [expr {$nx + $px}]
 		set y [expr {$ny + $py}]
-		if {$x >= $matrix(width) || $x < 0 || $y >= $matrix(height)} {
+		if {$x >= $matrix(WIDTH) || $x < 0 || $y < 0 || $y >= $matrix(HEIGHT)} {
 			return false
 		}
 		# check for filled cells
@@ -661,15 +679,8 @@ proc valid_move {nx ny {piece {}}} {
 
 proc cell_occupied {x y} {
 	variable matrix
-	variable widget
-	variable game
 
-	set cell [$widget(matrix) find closest {*}[canvas_coord $x $y]]
-	set tags [$widget(matrix) gettags $cell]
-	if {[lsearch -exact -inline $tags full] == {}} {
-		return false
-	}
-	return true
+	return [expr {[lindex $matrix(row$y) $x] != {}}]
 }
 
 proc cancel_fall {} {
@@ -691,7 +702,7 @@ proc cancel_lock {} {
 proc can_fall {} {
 	variable matrix
 	set nextfall $matrix(fallcenter)
-	lset nextfall 1 [expr [lindex $matrix(fallcenter) 1] + 1]
+	lset nextfall 1 [expr [lindex $matrix(fallcenter) 1] - 1]
 
 	return [valid_move {*}$nextfall]
 }
@@ -725,6 +736,7 @@ proc game_over {} {
 	cancel_lock
 	set game(locked) true
 	set game(lastaction) "GAME OVER"
+
 	$widget(matrix) itemconfigure empty -fill "red4"
 	update_stats
 }
@@ -769,7 +781,7 @@ proc gen_phase {} {
 	next_piece
 
 	# place the center of the piece at $matrix(generate)
-	set matrix(fallcenter) $matrix(generate)
+	set matrix(fallcenter) $matrix(GENERATE)
 	set matrix(fallpiece) $piece($game(piece))
 	redraw
 	if {[block_out]} {
@@ -779,7 +791,7 @@ proc gen_phase {} {
 	# if space is available, immediately fall one block down
 	# (As stated by the Tetris Guidelines.)
 	if {[can_fall]} {
-		lset matrix(fallcenter) 1 [expr [lindex $matrix(fallcenter) 1] + 1]
+		lset matrix(fallcenter) 1 [expr [lindex $matrix(fallcenter) 1] - 1]
 	}
 
 	set game(locked) false
@@ -807,7 +819,7 @@ proc fall_phase {} {
 	if {$game(softdropped)} {
 		award_points softdrop
 	}
-	set matrix(fallcenter) [list [lindex $matrix(fallcenter) 0] [expr [lindex $matrix(fallcenter) 1] + 1]]
+	set matrix(fallcenter) [list [lindex $matrix(fallcenter) 0] [expr [lindex $matrix(fallcenter) 1] - 1]]
 	redraw
 
 	if {[can_fall]} {
@@ -833,12 +845,14 @@ proc lock_piece {} {
 	variable widget
 
 	set game(locked) true
-
 	set game(softdropped) false
 
-	$widget(matrix) addtag full withtag falling
-	$widget(matrix) dtag falling
-	$widget(matrix) dtag full empty
+	# mark occupied cells in $matrix
+	foreach {x y} $matrix(fallpiece) {
+		incr x [lindex $matrix(fallcenter) 0]
+		incr y [lindex $matrix(fallcenter) 1]
+		lset matrix(row$y) $x $game(piece)
+	}
 
 	redraw
 	# if the falling piece landed entirely inside buffer zone, game over
@@ -863,30 +877,28 @@ proc pattern_phase {} {
 	set checklines {}
 	foreach {x y} $matrix(fallpiece) {
 		set line [expr $y + [lindex $matrix(fallcenter) 1]]
-		if {[lsearch -exact -inline $checklines $line] == {}} {
+		if {[lsearch -exact $checklines $line] == -1} {
 			lappend checklines [expr $line]
 		}
 	}
 
+	# check for line clears
 	set matrix(clearedlines) {}
 	foreach line $checklines {
-		set cells [$widget(matrix) find\
-				overlapping {*}[canvas_coord 0 $line]\
-					{*}[canvas_coord $matrix(width) $line]]
+		if {[lsearch -exact $matrix(clearedlines) $line] != -1} {
+			continue
+		}
+		set cells $matrix(row$line)
 		set clear true
 		foreach cell $cells {
-			$widget(matrix) addtag checked withtag $cell
-			set tags [$widget(matrix) gettags $cell]
-			if {[lsearch -exact -inline $tags empty] != {}} {
+			if {$cell == {}} {
 				set clear false
 				break
 			}
 		}
 		if {$clear} {
 			lappend matrix(clearedlines) $line
-			$widget(matrix) addtag cleared withtag checked
 		}
-		$widget(matrix) dtag checked
 	}
 
 	set linescleared [llength $matrix(clearedlines)] 
@@ -917,56 +929,16 @@ proc clear_phase {} {
 	# XXX Iterate would occur here, and is unused.
 
 	# Animate
-	set matrix(clearedlines) [lsort -integer $matrix(clearedlines)]
-	$widget(matrix) itemconfigure cleared -fill white
-	foreach cleared $matrix(clearedlines) {
-		shift_line $cleared
-	}
-	update idletasks
-	$widget(matrix) itemconfigure cleared -fill {}
-	$widget(matrix) addtag empty withtag cleared
-	$widget(matrix) dtag cleared full
-	$widget(matrix) dtag cleared
-
-	# Eliminate
-	set matrix(clearedlines) {}
-
-	complete_phase
-}
-
-# move a cleared line to the top, and the lines above it down
-proc shift_line {line} {
-	variable matrix
-	variable game
-	variable widget
-
-	set above [expr {$line - 1}]
-	if {$above > 0} {
-		$widget(matrix) addtag movedown overlapping {*}[canvas_coord 0 0]\
-					{*}[canvas_coord $matrix(width) $above]
-	}
-
-	$widget(matrix) addtag moveup overlapping {*}[canvas_coord 0 $line]\
-					{*}[canvas_coord $matrix(width) $line]
-
-	$widget(matrix) move moveup 0 [expr $game(cellsize) * -1 * $line]
-
-	if {!$game(animate)} {
-		# pshhh boring
-		$widget(matrix) move movedown 0 $game(cellsize)
-	} else {
-		# XXX animated for style points
-		for {set i 0} {$i < $game(cellsize)} {incr i} {
-			$widget(matrix) move movedown 0 1
-			after 1
-			update idletasks
+	foreach y $matrix(clearedlines) {
+		for {set x 0} {$x < [llength $matrix(row$y)]} {incr x} {
+			$widget(matrix) itemconfigure "($x,$y)" -fill white
 		}
 	}
 
-	$widget(matrix) dtag moveup full
+	# Eliminate
+	matrix_clear_lines
 
-	$widget(matrix) dtag moveup
-	$widget(matrix) dtag movedown
+	complete_phase
 }
 
 # update stat counters, then return to gen_phase
@@ -977,6 +949,7 @@ proc complete_phase {} {
 		level_up
 	}
 	update_stats
+	redraw
 
 	gen_phase
 }
