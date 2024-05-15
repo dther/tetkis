@@ -219,24 +219,11 @@ proc init {} {
 	# piece preview
 	ttk::labelframe $widget(previewlabel) -text NEXT
 	canvas $widget(preview) \
-			-width [expr {$game(cellsize) * 4}]\
+			-width [expr {$game(cellsize) * 4 + 1}]\
 			-height [expr {$game(cellsize) * 4}]\
 			-background grey
 
-	# TODO add graphics for all pieces, and simply hide/reveal them
-	# as they appear in the queue
-if 0 {
-	for {set y 0} {$y < 4} {incr y} {
-		for {set x 0} {$x < 4} {incr x} {
-			$widget(preview) create rectangle\
-					[expr {$x * $game(cellsize) + 1}]\
-					[expr {$y * $game(cellsize) + 1}]\
-					[expr {($x + 1) * $game(cellsize) + 1}]\
-					[expr {($y + 1) * $game(cellsize) + 1}]\
-					-tags {cell}
-		}
-	}
-}
+	init_previews
 	pack $widget(preview) -padx 2 -pady 2
 
 	# scoreboard (stats)
@@ -295,6 +282,96 @@ if 0 {
 	bind $widget(matrix) <<SoftDropPress>> [namespace code {soft_drop true}]
 	bind $widget(matrix) <<SoftDropRelease>> [namespace code {soft_drop false}]
 	bind $widget(matrix) <<HardDrop>> [namespace code {hard_drop}]
+}
+
+proc init_previews {} {
+	variable widget
+	variable game
+	variable piece
+	# add previews for all pieces, hidden/revealed when needed
+	# Each has two tags: "q$index$piece" and "preview"
+	# This way, updating the preview is a simple process:
+	# 1. $widget(preview) itemconfigure preview -state hidden
+	# 2. $widget(preview) itemconfigure q$index$piece -state normal
+	#    (for each piece in $game(nextqueue))
+	set centerx [expr {[$widget(preview) cget -width]/2
+					- $game(cellsize) + 1}]
+	set centery [expr {[$widget(preview) cget -height]/2
+					- $game(cellsize)/2}]
+
+	foreach {x y} $piece(I) {
+		$widget(preview) create rectangle \
+		[expr $centerx + $x * $game(cellsize)]\
+		[expr $centery + -$y * $game(cellsize)]\
+		[expr $centerx + ($x+1) * $game(cellsize)]\
+		[expr $centery + (-$y+1) * $game(cellsize)]\
+				-tags {preview q0I}\
+				-state hidden
+	}
+
+	# change the y offset for pieces that are two cells tall
+	set centery [expr [$widget(preview) cget -height]/2]
+	foreach {x y} $piece(O) {
+		$widget(preview) create rectangle \
+			[expr $centerx + $x * $game(cellsize)]\
+			[expr $centery + -$y * $game(cellsize)]\
+			[expr $centerx + ($x+1) * $game(cellsize)]\
+			[expr $centery + (-$y+1) * $game(cellsize)]\
+				-tags {preview q0O}\
+				-state hidden
+	}
+
+	# change the x offset for pieces that are 3 cells wide
+	set centerx [expr [$widget(preview) cget -width]/2 - $game(cellsize)/2]
+	foreach {x y} $piece(T) {
+		$widget(preview) create rectangle \
+			[expr $centerx + $x * $game(cellsize)]\
+			[expr $centery + -$y * $game(cellsize)]\
+			[expr $centerx + ($x+1) * $game(cellsize)]\
+			[expr $centery + (-$y+1) * $game(cellsize)]\
+				-tags {preview q0T}\
+				-state hidden
+	}
+
+	foreach {x y} $piece(L) {
+		$widget(preview) create rectangle \
+			[expr $centerx + $x * $game(cellsize)]\
+			[expr $centery + -$y * $game(cellsize)]\
+			[expr $centerx + ($x+1) * $game(cellsize)]\
+			[expr $centery + (-$y+1) * $game(cellsize)]\
+				-tags {preview q0L}\
+				-state hidden
+	}
+
+	foreach {x y} $piece(J) {
+		$widget(preview) create rectangle \
+			[expr $centerx + $x * $game(cellsize)]\
+			[expr $centery + -$y * $game(cellsize)]\
+			[expr $centerx + ($x+1) * $game(cellsize)]\
+			[expr $centery + (-$y+1) * $game(cellsize)]\
+				-tags {preview q0J}\
+				-state hidden
+	}
+
+	foreach {x y} $piece(S) {
+		$widget(preview) create rectangle \
+				[expr $centerx + $x * $game(cellsize)]\
+				[expr $centery + -$y * $game(cellsize)]\
+				[expr $centerx + ($x+1) * $game(cellsize)]\
+				[expr $centery + (-$y+1) * $game(cellsize)]\
+				-tags {preview q0S}\
+				-state hidden
+	}
+
+	foreach {x y} $piece(Z) {
+		$widget(preview) create rectangle \
+				[expr $centerx + $x * $game(cellsize)]\
+				[expr $centery + -$y * $game(cellsize)]\
+				[expr $centerx + ($x+1) * $game(cellsize)]\
+				[expr $centery + (-$y+1) * $game(cellsize)]\
+				-tags {preview q0Z}\
+				-state hidden
+	}
 }
 
 proc action_notify {str} {
@@ -633,8 +710,12 @@ proc refill_next_queue {} {
 		lappend game(nextqueue) [new_piece]
 	}
 
-	# FIXME draw preview (broken due to changes in canvas logic)
-	puts "Coming up next: $game(nextqueue)"
+	# draw preview
+	$widget(preview) itemconfigure preview -state hidden
+	for {set i 0} {$i < [llength $game(nextqueue)]} {incr i} {
+		set p [lindex $game(nextqueue) $i]
+		$widget(preview) itemconfigure "q$i$p" -state normal
+	}
 }
 
 # Produces a new piece to feed the nextqueue.
