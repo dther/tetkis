@@ -243,7 +243,7 @@ proc init {} {
 	button $widget(newgame) -text "New Game"\
 				-command [namespace code new_game]
 	button $widget(options) -text "Options" -command [namespace code {
-		toggle_animation
+		action_notify {This button doesn't do anything right now.}
 	}]
 	button $widget(about) -text "About" -command [namespace code {
 		action_notify {(c) 2024 Rudy "dther" Dellomas III. Not authorised by TTC whatsoever. As-is, No Warranty, No Refunds.}
