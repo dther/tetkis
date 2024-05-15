@@ -39,6 +39,8 @@ proc init {} {
 	# name: name of app
 	# cellsize: visual size of cells in pixels
 	# seed: seed given to "expr srand(n)" at new_game
+	# maxlockmoves: number of moves allowed during the lock phase,
+	#               after which piece is locked immediately
 	# bagrandom: if true, pick new pieces with the "bag system"
 	# bag: virtual bag of 7 pieces, refilled when empty
 	# skyline: visible space of the buffer, in pixels
@@ -59,6 +61,7 @@ proc init {} {
 		cellsize 25
 		queuesize 6
 		seed 0
+		maxlockmoves 15
 		bagrandom true
 		bag {}
 		skyline 10
@@ -67,6 +70,8 @@ proc init {} {
 		softdropms 50
 		fallms 1000
 		lockms 500
+		lockmovesleft 15
+		lowestfall 0
 		fallafter false
 		lockafter false
 		softdropping false
@@ -358,6 +363,8 @@ proc new_game {} {
 	array set game {
 		fallms 1000
 		lockms 500
+		lockmovesleft 15
+		lowestfall 0
 		fallafter false
 		lockafter false
 		softdropping false
@@ -474,10 +481,22 @@ proc rotate_piece {dir} {
 			expr {$center + $shift}
 		}]
 		if {[valid_move {*}$trycenter $newpiece]} {
+			# successful rotation
 			set matrix(fallcenter) $trycenter
 			set game(piecefacing) $newfacing
 			set matrix(fallpiece) $newpiece
 			redraw
+
+			# if we rotated into a lower spot than before,
+			# give the piece more lockmoves
+			if {[lindex $matrix(fallcenter) 1] < $game(lowestfall)} {
+				set game(lockmovesleft) $game(maxlockmoves)
+				lassign $matrix(fallcenter) _ game(lowestfall)
+			} elseif {$game(lockafter) != false} {
+				incr game(lockmovesleft) -1
+			}
+			# extend lock timer
+			cancel_lock
 			break
 		}
 	}
@@ -490,6 +509,9 @@ proc rotate_piece {dir} {
 	if {[can_fall] && $game(lockafter) != "false" && $game(fallafter) == false} {
 		cancel_lock
 		set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
+	} elseif {![can_fall]} {
+		cancel_fall
+		tailcall lock_phase
 	}
 	# TODO: if a T piece successfully rotates and can't fall,
 	# set a flag to check for t-spins during lock_piece
@@ -536,16 +558,19 @@ proc move_piece {dir} {
 	if [valid_move {*}$newpos] {
 		set matrix(fallcenter) $newpos
 		redraw
+		# any movement extends the lock timer
+		if {$game(lockafter) != false} {
+			cancel_lock
+			incr game(lockmovesleft) -1
+		}
 		# re-check if we can fall
 		if {[can_fall] && $game(fallafter) == false} {
-			# XXX Not quite correct behaviour:
-			# Tetris guidelines state that the lock should only be
-			# paused, and only be cancelled once the piece
-			# successfully falls, to prevent stalling forever.
-			# Probably doable with [clock milliseconds].
-			cancel_lock
 			set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
-		} elseif {![can_fall] && $game(fallafter) != false} {
+			return
+		}
+
+		# if we can't fall, check if we need to be locked
+		if {![can_fall]} {
 			cancel_fall
 			tailcall lock_phase
 		}
@@ -821,6 +846,8 @@ proc gen_phase {} {
 	# place the center of the piece at $matrix(generate)
 	set matrix(fallcenter) $matrix(GENERATE)
 	set matrix(fallpiece) $piece($game(piece))
+	set game(lockmovesleft) $game(maxlockmoves)
+	lassign $matrix(fallcenter) _ game(lowestfall)
 	if {[block_out]} {
 		tailcall game_over
 	}
@@ -829,6 +856,7 @@ proc gen_phase {} {
 	# (As stated by the Tetris Guidelines.)
 	if {[can_fall]} {
 		lset matrix(fallcenter) 1 [expr [lindex $matrix(fallcenter) 1] - 1]
+		incr game(lowestfall) -1
 	}
 
 	set game(locked) false
@@ -836,7 +864,7 @@ proc gen_phase {} {
 	if {[can_fall]} {
 		set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
 	} else {
-		lock_phase
+		tailcall lock_phase
 	}
 }
 
@@ -859,6 +887,12 @@ proc fall_phase {} {
 	set matrix(fallcenter) [list [lindex $matrix(fallcenter) 0] [expr [lindex $matrix(fallcenter) 1] - 1]]
 	redraw
 
+	# if the piece falls to a new low, reset lockmovesleft
+	if {[lindex $matrix(fallcenter) 1] < $game(lowestfall)} {
+		set game(lockmovesleft) $game(maxlockmoves)
+		lassign $matrix(fallcenter) _ game(lowestfall)
+	}
+
 	if {[can_fall]} {
 		set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
 	} else {
@@ -872,6 +906,9 @@ proc lock_phase {} {
 	variable game
 
 	cancel_fall
+	if {$game(lockmovesleft) == 0} {
+		tailcall lock_piece
+	}
 	set game(lockafter) [after $game(lockms) [namespace code lock_piece]]
 }
 
