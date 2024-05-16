@@ -708,8 +708,6 @@ proc move_piece {dir} {
 			cancel_fall
 			tailcall lock_phase
 		}
-	} else {
-		bell
 	}
 }
 
