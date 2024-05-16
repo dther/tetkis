@@ -600,7 +600,7 @@ proc rotate_piece {dir} {
 
 	# check if rotation has caused piece to "lift"
 	# (and therefore may cause it to go from locking to falling)
-	if {[can_fall] && $game(lockafter) != "false" && $game(fallafter) == false} {
+	if {[can_fall]} {
 		cancel_lock
 		set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
 	} elseif {![can_fall]} {
@@ -893,11 +893,13 @@ proc lock_out {} {
 proc game_over {} {
 	variable game
 	variable widget
+
 	cancel_fall
 	cancel_lock
 	set game(locked) true
 	set game(lastaction) "GAME OVER"
 
+	redraw
 	$widget(matrix) itemconfigure empty -fill "red4"
 	update_stats
 }
@@ -1003,7 +1005,13 @@ proc fall_phase {} {
 proc lock_phase {} {
 	variable game
 
+	set game(locked) false
+
+	# cancel any events that might be pending
 	cancel_fall
+	cancel_lock
+
+	# lock immediately if moves are used up
 	if {$game(lockmovesleft) == 0} {
 		tailcall lock_piece
 	}
@@ -1026,7 +1034,6 @@ proc lock_piece {} {
 		lset matrix(row$y) $x $game(piece)
 	}
 
-	redraw
 	# if the falling piece landed entirely inside buffer zone, game over
 	if {[lock_out]} {
 		tailcall game_over
