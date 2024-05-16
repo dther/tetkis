@@ -40,6 +40,7 @@ proc init {} {
 	# cellsize: visual size of cells in pixels
 	# seed: seed given to "expr srand(n)" at new_game
 	# holding: if true, allow pieces to be "held" in the holdqueue
+	# holdused: if true, hold queue cannot be used until the next piece.
 	# holdqueue: list containing piece that is being held, if any
 	# maxlockmoves: number of moves allowed during the lock phase,
 	#               after which piece is locked immediately
@@ -63,6 +64,7 @@ proc init {} {
 		cellsize 25
 		queuesize 7
 		holding false
+		holdused false
 		holdqueue {}
 		seed 0
 		maxlockmoves 15
@@ -292,6 +294,7 @@ proc init {} {
 	event add <<SoftDropRelease>> <KeyRelease-Down> <KeyRelease-s>
 	event add <<RotateRight>> <x> <e>
 	event add <<RotateLeft>> <z> <q>
+	event add <<Hold>> <Shift_L>
 	event add <<Pause>> <Escape>
 
 	bind $widget(matrix) <<MoveLeft>> [namespace code {move_piece left}]
@@ -300,6 +303,7 @@ proc init {} {
 	bind $widget(matrix) <<RotateLeft>> [namespace code {rotate_piece left}]
 	bind $widget(matrix) <<SoftDropPress>> [namespace code {soft_drop true}]
 	bind $widget(matrix) <<SoftDropRelease>> [namespace code {soft_drop false}]
+	bind $widget(matrix) <<Hold>> [namespace code {hold_piece}]
 	bind $widget(matrix) <<HardDrop>> [namespace code {hard_drop}]
 }
 
@@ -307,7 +311,7 @@ proc init {} {
 proc init_hold {} {
 	variable widget
 	variable game
-	init_view $widget(hold) {} [expr $game(cellsize)*2] [expr $game(cellsize)*2]\
+	init_view $widget(hold) 0 [expr $game(cellsize)*2] [expr $game(cellsize)*2]\
 				[expr $game(cellsize) * 0.95]
 }
 
@@ -450,6 +454,7 @@ proc new_game {} {
 
 	# reset game and matrix
 	array set game {
+		holdused false
 		holdqueue {}
 		fallms 1000
 		lockms 500
@@ -543,6 +548,32 @@ proc update_stats {} {
 	$widget(cleared) configure -text "Cleared: $game(cleared)/$game(goal)"
 	$widget(level) configure -text "Level: $game(level)"
 	$widget(lastaction) configure -text $game(lastaction)
+}
+
+# Hold the current piece.
+# If there is no piece in the hold queue, the current piece is put into it,
+# and a new piece is generated.
+# If there is already a piece in the hold queue,
+# the current piece enters the hold queue,
+# and the piece previously in the queue is put into play as though
+# it was newly generated via gen_phase.
+proc hold_piece {} {
+	variable game
+	if {$game(locked) || $game(holdused)} {return}
+	set game(holdused) true
+	lappend game(holdqueue) $game(piece)
+	if {[llength $game(holdqueue)] == 1} {
+		tailcall gen_phase
+	}
+	tailcall gen_phase holdqueue
+}
+
+proc update_hold_view {} {
+	variable widget
+	variable game
+	set piece [lindex $game(holdqueue) 0]
+	$widget(hold) itemconfigure preview -state hidden
+	$widget(hold) itemconfigure "q0$piece" -state normal
 }
 
 # attempt to rotate a piece left (counter clockwise) or right (clockwise)
@@ -939,7 +970,9 @@ proc level_up {} {
 # and repeat until the game is over
 
 # make a new piece 
-proc gen_phase {} {
+# "queue" can be used to indicate whether the next piece is from the
+# nextqueue or the hold queue
+proc gen_phase {{queue nextqueue}} {
 	variable game
 	variable matrix
 	variable piece
@@ -948,9 +981,10 @@ proc gen_phase {} {
 	cancel_fall
 	cancel_lock
 
-	set game(piece) [lpop game(nextqueue)]
+	set game(piece) [lpop game($queue)]
 	set game(piecefacing) north
 	refill_next_queue
+	update_hold_view
 
 	# place the center of the piece at $matrix(generate)
 	set matrix(fallcenter) $matrix(GENERATE)
@@ -1133,6 +1167,7 @@ proc clear_phase {} {
 proc complete_phase {} {
 	variable game
 
+	set game(holdused) false
 	if {$game(cleared) >= $game(goal)} {
 		level_up
 	}
