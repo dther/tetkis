@@ -170,8 +170,10 @@ proc init {} {
 	# UI elements
 	array set widget {
 		matrix .matrix
-		previewlabel .previewlabel
-		preview .previewlabel.preview
+		holdframe .holdf
+		hold .holdf.hold
+		previewframe .previewf
+		preview .previewf.preview
 		stats .stats
 		score .stats.score
 		cleared .stats.cleared
@@ -217,26 +219,38 @@ proc init {} {
 	}
 
 	# piece preview
-	ttk::labelframe $widget(previewlabel) -text NEXT
+	ttk::labelframe $widget(previewframe) -text NEXT
 	canvas $widget(preview) \
 			-width [expr {$game(cellsize) * 4}]\
 			-background grey
-			;#-height [expr {$game(cellsize) * 14}]\
 
 	init_previews
 	pack $widget(preview) -padx 2 -pady 2 -expand 1 -fill both
 
+	# hold piece view
+	ttk::labelframe $widget(holdframe) -text HOLD
+	canvas $widget(hold) \
+			-width [expr {$game(cellsize) * 4}]\
+			-height [expr {$game(cellsize) * 4}]\
+			-background grey
+
+	init_hold
+	pack $widget(hold) -padx 2 -pady 2 -fill both
+
 	# scoreboard (stats)
 	ttk::labelframe $widget(stats) -text STATS
-	ttk::label $widget(score) -text "Score: 0"
-	ttk::label $widget(cleared) -text "Cleared: 0/0"
-	ttk::label $widget(lastaction) -text {} \
+	ttk::label $widget(score) -text "Score: 0"\
 				-wraplength [expr {4*$game(cellsize)}]
-	ttk::label $widget(level) -text "Level: 0"
+	ttk::label $widget(cleared) -text "Cleared: 0/0"\
+				-wraplength [expr {4*$game(cellsize)}]
+	ttk::label $widget(lastaction) -text {}\
+				-wraplength [expr {4*$game(cellsize)}]
+	ttk::label $widget(level) -text "Level: 0"\
+				-wraplength [expr {4*$game(cellsize)}]
 	pack $widget(score) -fill x
 	pack $widget(cleared) -fill x
 	pack $widget(level) -fill x
-	pack $widget(lastaction) -fill x
+	pack $widget(lastaction) -fill x -side bottom
 
 	# game menu
 	ttk::labelframe $widget(gamemenu) -text MENU
@@ -254,9 +268,10 @@ proc init {} {
 
 	# place elements
 	grid $widget(matrix) -row 0 -column 1 -rowspan 3 -padx 2 -pady 2
-	grid $widget(previewlabel) -row 0 -column 2 -rowspan 2 -padx 2 -pady 2 -sticky nsew
+	grid $widget(previewframe) -row 0 -column 2 -rowspan 2 -padx 2 -pady 2 -sticky nsew
+	grid $widget(holdframe) -row 0 -column 0 -padx 2 -pady 2 -sticky nsew
 	grid $widget(gamemenu) -row 2 -column 2 -padx 2 -pady 2 -sticky nsew
-	grid $widget(stats) -row 1 -column 0 -padx 2 -pady 2 -sticky new
+	grid $widget(stats) -row 1 -column 0 -rowspan 2 -padx 2 -pady 2 -sticky nsew
 	grid rowconfigure . 1 -weight 1
 
 	# ensure window is right size
@@ -282,6 +297,10 @@ proc init {} {
 	bind $widget(matrix) <<SoftDropPress>> [namespace code {soft_drop true}]
 	bind $widget(matrix) <<SoftDropRelease>> [namespace code {soft_drop false}]
 	bind $widget(matrix) <<HardDrop>> [namespace code {hard_drop}]
+}
+
+# Add a view for the piece currently inside the hold queue
+proc init_hold {} {
 }
 
 # add previews for all pieces, hidden/revealed when needed
