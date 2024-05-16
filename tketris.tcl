@@ -609,7 +609,7 @@ proc rotate_piece {dir} {
 
 	# check if rotation has caused piece to "lift"
 	# (and therefore may cause it to go from locking to falling)
-	if {[can_fall]} {
+	if {[can_fall] && $game(fallafter) == false} {
 		cancel_lock
 		set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
 	} elseif {![can_fall]} {
