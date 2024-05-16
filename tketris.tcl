@@ -39,6 +39,8 @@ proc init {} {
 	# name: name of app
 	# cellsize: visual size of cells in pixels
 	# seed: seed given to "expr srand(n)" at new_game
+	# holding: if true, allow pieces to be "held" in the holdqueue
+	# holdqueue: list containing piece that is being held, if any
 	# maxlockmoves: number of moves allowed during the lock phase,
 	#               after which piece is locked immediately
 	# bagrandom: if true, pick new pieces with the "bag system"
@@ -60,6 +62,8 @@ proc init {} {
 		name Tketris
 		cellsize 25
 		queuesize 7
+		holding false
+		holdqueue {}
 		seed 0
 		maxlockmoves 15
 		bagrandom true
@@ -442,6 +446,7 @@ proc new_game {} {
 
 	# reset game and matrix
 	array set game {
+		holdqueue {}
 		fallms 1000
 		lockms 500
 		lockmovesleft 15
@@ -464,6 +469,14 @@ proc new_game {} {
 	}
 	set game(basefallms) $game(startfallms)
 	set game(softdropms) [expr {round($game(startfallms)/20)}]
+
+	# TODO ensure the size stays consistent somehow
+	# shift windows around based on game mode options
+if 0 {
+	if {!$game(holding)} {
+		grid forget . $widget(holdframe)
+	}
+}
 
 	# reset all cells
 	reset_matrix
