@@ -570,12 +570,14 @@ proc rotate_piece {dir} {
 	}
 
 	set kicks [get_piece_kicks $game(piece) $game(piecefacing) $newfacing]
+	set success false
 	foreach kick $kicks {
 		set trycenter [lmap center $matrix(fallcenter) shift $kick {
 			expr {$center + $shift}
 		}]
 		if {[valid_move {*}$trycenter $newpiece]} {
 			# successful rotation
+			set success true
 			set matrix(fallcenter) $trycenter
 			set game(piecefacing) $newfacing
 			set matrix(fallpiece) $newpiece
@@ -594,6 +596,9 @@ proc rotate_piece {dir} {
 			break
 		}
 	}
+
+	# if no rotation occurred, don't recalculate fall/lock events
+	if {!$success} {return}
 
 	# TODO if a T piece manages to rotate to a valid position after five tries,
 	# and locks as a result, then it's a full (not mini) t-spin
