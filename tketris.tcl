@@ -305,6 +305,10 @@ proc init {} {
 
 # Add a view for the piece currently inside the hold queue
 proc init_hold {} {
+	variable widget
+	variable game
+	init_view $widget(hold) {} [expr $game(cellsize)*2] [expr $game(cellsize)*2]\
+				[expr $game(cellsize) * 0.95]
 }
 
 # add previews for all pieces, hidden/revealed when needed
@@ -323,36 +327,36 @@ proc init_previews {} {
 
 	set cx [expr {$game(cellsize) * 2}]
 	set cy [expr {round($game(cellsize) * 1.5)}]
-	init_preview_for_index 0 $cx $cy [expr {$game(cellsize) * 0.95}]
+	init_view $widget(preview) 0 $cx $cy [expr {$game(cellsize) * 0.95}]
 
 	incr cy $icy
-	init_preview_for_index 1 $cx $cy [expr {$game(cellsize) * 0.66}]
+	init_view $widget(preview) 1 $cx $cy [expr {$game(cellsize) * 0.66}]
 
 	incr cy $icy
-	init_preview_for_index 2 $cx $cy [expr {$game(cellsize) * 0.66}]
+	init_view $widget(preview) 2 $cx $cy [expr {$game(cellsize) * 0.66}]
 
 	incr cy $icy
-	init_preview_for_index 3 $cx $cy [expr {$game(cellsize) * 0.66}]
+	init_view $widget(preview) 3 $cx $cy [expr {$game(cellsize) * 0.66}]
 
 	incr cy $icy
-	init_preview_for_index 4 $cx $cy [expr {$game(cellsize) * 0.5}]
+	init_view $widget(preview) 4 $cx $cy [expr {$game(cellsize) * 0.5}]
 
 	incr cy $icy
-	init_preview_for_index 5 $cx $cy [expr {$game(cellsize) * 0.5}]
+	init_view $widget(preview) 5 $cx $cy [expr {$game(cellsize) * 0.5}]
 
 	incr cy $icy
-	init_preview_for_index 6 $cx $cy [expr {$game(cellsize) * 0.5}]
+	init_view $widget(preview) 6 $cx $cy [expr {$game(cellsize) * 0.5}]
 }
 
-# Initialises a preview for position $index in game(nextqueue),
+# Initialises a "piece view" in a canvas widget that can be toggled on or off
 # drawing pieces in $widget(preview) centered at the position (cx, cy).
 # cellsize can be used to specify that the preview should be smaller.
-proc init_preview_for_index {index cx cy cellsize} {
+proc init_view {canvas index cx cy cellsize} {
 	set newpreview [list {index name centerx centery cellsize} {
-		variable widget
 		variable piece
+		upvar canvas canvas
 		foreach {x y} $piece($name) {
-			$widget(preview) create rectangle \
+			$canvas create rectangle \
 			[expr $centerx + $x * $cellsize]\
 			[expr $centery + -$y * $cellsize]\
 			[expr $centerx + ($x+1) * $cellsize]\
