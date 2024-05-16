@@ -831,8 +831,20 @@ proc redraw {} {
 	tag_piece $widget(matrix) \
 		falling $matrix(fallcenter) $matrix(fallpiece)
 
+	# tag ghost piece
+	if {[can_fall]} {
+		for {lassign $matrix(fallcenter) x y} {$y >= 0} {incr y -1} {
+			if {![valid_move $x $y]} {
+				break
+			}
+		}
+		incr y
+		tag_piece $widget(matrix) ghost "$x $y" $matrix(fallpiece)
+	}
+
 	# apply colors
 	$widget(matrix) itemconfigure empty -fill {}
+	$widget(matrix) itemconfigure ghost -fill "light grey"
 	$widget(matrix) itemconfigure falling -fill $piece($game(piece)color)
 	foreach piecetag $piece(list) {
 		$widget(matrix) itemconfigure $piecetag \
