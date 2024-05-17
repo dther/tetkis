@@ -512,11 +512,46 @@ if 0 {
 # award points according to the Tetris scoring table
 proc award_points {action {tspin false}} {
 	variable game
-	# TODO T-spins
+
+	# T-spins
+	switch -- $tspin {
+		true {set actionstr "T-Spin "}
+		mini {set actionstr "Mini T-Spin "}
+		false {set actionstr {}}
+		default {return -code 1 "invalid tspin value: $tspin"}
+	}
 	switch -- $action {
-		1 {set base 100 ; set actionstr "Single"}
-		2 {set base 300 ; set actionstr "Double"}
-		3 {set base 400 ; set actionstr "Triple"}
+		0 {
+			switch -- $tspin {
+				true {set base 400}
+				mini {set base 100}
+				default {return -code error "Invalid action $action"}
+			}
+		}
+		1 {
+			set actionstr "${actionstr}Single"
+			switch -- $tspin {
+				false {set base 100}
+				mini {set base 200}
+				true {set base 800}
+			}
+		}
+		2 {
+			set actionstr "${actionstr}Double"
+			if {!$tspin} {
+				set base 800
+			} else {
+				set base 1200
+			}
+		}
+		3 {
+			set actionstr "${actionstr}Triple"
+			if {!$tspin} {
+				set base 500
+			} else {
+				set base 1600
+			}
+		}
 		4 {set base 800 ; set actionstr "Tetris"}
 		softdrop {
 			incr game(score) 1
@@ -528,11 +563,12 @@ proc award_points {action {tspin false}} {
 			update_stats
 			return
 		}
+		default {return -code 1 "Invalid action $action"}
 	}
 
 	set total [expr {$base * $game(level)}]
 	set actionstr "$actionstr\n($base x $game(level)"
-	if {$game(b2b)} {
+	if {$game(b2b) && $action != 0} {
 		set b2bbonus [expr {$total/2}]
 		set actionstr "Back-to-Back $actionstr + $b2bbonus"
 	} else {
@@ -610,7 +646,9 @@ proc rotate_piece {dir} {
 
 	set kicks [get_piece_kicks $game(piece) $game(piecefacing) $newfacing]
 	set success false
+	set tries 0
 	foreach kick $kicks {
+		incr tries
 		set trycenter [lmap center $matrix(fallcenter) shift $kick {
 			expr {$center + $shift}
 		}]
@@ -639,8 +677,11 @@ proc rotate_piece {dir} {
 	# if no rotation occurred, don't recalculate fall/lock events
 	if {!$success} {return}
 
-	# TODO if a T piece manages to rotate to a valid position after five tries,
+	# if a T piece manages to rotate to a valid position after five tries,
 	# and locks as a result, then it's a full (not mini) t-spin
+	if {$tries >= 5 && $game(piece) == "T"} {
+		set game(kicktspin) true
+	}
 
 	# check if rotation has caused piece to "lift"
 	# (and therefore may cause it to go from locking to falling)
@@ -648,11 +689,10 @@ proc rotate_piece {dir} {
 		cancel_lock
 		set game(fallafter) [after $game(fallms) [namespace code fall_phase]]
 	} elseif {![can_fall]} {
+		if {$game(piece) == "T"} {set game(checktspin) true}
 		cancel_fall
 		tailcall lock_phase
 	}
-	# TODO: if a T piece successfully rotates and can't fall,
-	# set a flag to check for t-spins during lock_piece
 }
 
 # The explanation for this is complicated.
@@ -693,7 +733,9 @@ proc move_piece {dir} {
 			lset newpos 0 [expr [lindex $newpos 0] + 1]
 		}
 	}
-	if [valid_move {*}$newpos] {
+	if {[valid_move {*}$newpos]} {
+		set game(checktspin) false
+		set game(kicktspin) false
 		set matrix(fallcenter) $newpos
 		redraw
 		# any movement extends the lock timer
@@ -894,7 +936,11 @@ proc valid_move {nx ny {piece {}}} {
 proc cell_occupied {x y} {
 	variable matrix
 
-	return [expr {[lindex $matrix(row$y) $x] != {}}]
+	return [expr {
+		$x < 0 || $y < 0
+		|| $x >= $matrix(WIDTH) || $y >= $matrix(HEIGHT)
+		|| ([lindex $matrix(row$y) $x] != {})
+	}]
 }
 
 proc cancel_fall {} {
@@ -1036,6 +1082,8 @@ proc fall_phase {} {
 		tailcall lock_phase
 	}
 
+	set game(checktspin) false
+	set game(kicktspin) false
 	set game(softdropped) $game(softdropping)
 	if {$game(softdropped)} {
 		award_points softdrop
@@ -1094,14 +1142,73 @@ proc lock_piece {} {
 	if {[lock_out]} {
 		tailcall game_over
 	}
-	# TODO check for t-spins
+
+	# check for t-spins
+	set tspin false
+	if {$game(checktspin) || $game(kicktspin)} {
+		set tspin [check_tspin]
+	}
 
 	# XXX in multiplayer, this is when incoming attack lines would appear.
-	tailcall pattern_phase
+	tailcall pattern_phase $tspin
+}
+
+# Examines the area around $matrix(fallcenter) and checks if a T-Spin occurred.
+# Returns one of three values:
+# true: a T-Spin occurred.
+# mini: A mini T-Spin occurred.
+# false: no T-Spin occurred. 
+proc check_tspin {} {
+	variable matrix
+	variable game
+	# this table describes the blocks surrounding the T piece.
+	# The values of each list correspond to A, B, C and D
+	# from the guidelines.
+	array set SIDE {
+		north {{-1 1} {1 1} {-1 -1} {1 -1}}
+		east  {{1 -1} {1 1} {-1 -1} {-1 1}}
+		south {{-1 -1} {1 -1} {-1 1} {1 1}}
+		west  {{-1 -1} {-1 1} {1 -1} {1 1}}
+	}
+	lassign $matrix(fallcenter) cx cy
+	set sidecoords [lmap side $SIDE($game(piecefacing)) {
+		lassign $side x y
+		incr x $cx
+		incr y $cy
+		list $x $y
+	}]
+	puts $sidecoords
+	lassign $sidecoords a b c d
+
+	# check which of the four corners are occupied
+	set ab 0
+	set cd 0
+	foreach {side} {a b c d} {
+		if {![cell_occupied {*}[set $side]]} {continue}
+		switch -- $side {
+			a - b {incr ab}
+			c - d {incr cd}
+		}
+	}
+
+	# Now, check all possible conditions for a t-spin or t-spin mini.
+	if {$ab + $cd < 3} {
+		# not in T-Slot, no T-Spin
+		return false
+	} elseif {$ab == 2 || $game(kicktspin)} {
+		puts "$ab $game(kicktspin)"
+		# Sides A B and at least one of C/D are filled,
+		# OR the T piece travelled very far to fit into this slot.
+		# "True" T-Spin.
+		return true
+	} else {
+		# Otherwise, Mini T-Spin.
+		return mini
+	}
 }
 
 # check for line clears, award points
-proc pattern_phase {} {
+proc pattern_phase {tspin} {
 	variable matrix
 	variable widget
 	variable game
@@ -1138,7 +1245,7 @@ proc pattern_phase {} {
 
 	set linescleared [llength $matrix(clearedlines)] 
 	# track back-to-backs
-	if {$linescleared == 4} {
+	if {$linescleared == 4 || $tspin != false} {
 		set game(b2b) true
 	} elseif {$linescleared > 0} {
 		# single, double or triple w/o t-spin ends a back-to-back
@@ -1146,10 +1253,12 @@ proc pattern_phase {} {
 	}
 
 	# award points based on number of lines cleared
-	# TODO check for t-spins
 	if {$linescleared > 0} {
 		incr game(cleared) $linescleared
-		award_points $linescleared
+		award_points $linescleared $tspin
+	} elseif {$tspin != false} {
+		# award T-Spins even if no lines are cleared
+		award_points $linescleared $tspin
 	}
 
 	clear_phase
