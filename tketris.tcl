@@ -64,33 +64,35 @@ proc init {} {
 		cellsize 25
 		queuesize 7
 		holding false
-		holdused false
-		holdqueue {}
 		seed 0
 		maxlockmoves 15
 		bagrandom true
-		bag {}
 		skyline 10
 		startfallms 1000
+		lockms 500
+		levelcap 15
+		bag {}
+		nextqueue {}
+		holdused false
+		holdqueue {}
 		basefallms 1000
 		softdropms 50
 		fallms 1000
-		lockms 500
 		lockmovesleft 15
 		lowestfall 0
+		checktspin false
+		kicktspin false
 		fallafter false
 		lockafter false
 		softdropping false
 		softdropped false
 		locked true
-		nextqueue {}
 		piece {}
 		piecefacing {}
 		lastaction {}
 		score 0
 		cleared 0
 		level 1
-		levelcap 15
 		goal 10
 		b2b false
 	}
@@ -454,6 +456,8 @@ proc new_game {} {
 
 	# reset game and matrix
 	array set game {
+		checktspin false
+		kicktspin false
 		holdused false
 		holdqueue {}
 		fallms 1000
