@@ -811,7 +811,6 @@ proc redraw {} {
 	variable widget
 	variable piece
 
-	# TODO this is quite a heavy operation. need to start profiling
 	# tag cells in matrix
 	for {set y 0} {$y < $matrix(HEIGHT)} {incr y} {
 		for {set x 0} {$x < $matrix(WIDTH)} {incr x} {
