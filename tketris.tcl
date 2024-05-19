@@ -265,7 +265,7 @@ proc init {} {
 	button $widget(newgame) -text "New Game"\
 				-command [namespace code new_game]
 	button $widget(options) -text "Options" -command [namespace code {
-		action_notify {This button doesn't do anything right now.}
+		open_options_window
 	}]
 	button $widget(about) -text "About" -command [namespace code {
 		action_notify {(c) 2024 Rudy "dther" Dellomas III. Not authorised by TTC whatsoever. As-is, No Warranty, No Refunds.}
@@ -307,6 +307,93 @@ proc init {} {
 	bind $widget(matrix) <<SoftDropRelease>> [namespace code {soft_drop false}]
 	bind $widget(matrix) <<Hold>> [namespace code {hold_piece}]
 	bind $widget(matrix) <<HardDrop>> [namespace code {hard_drop}]
+}
+
+# create and display options window
+proc open_options_window {} {
+	variable widget
+	# TODO if options window already exists, focus it and return
+	array set widget {
+		optwin .options
+		opttab .options.nb
+		optframe .options.nb.f
+		optfields .options.nb.f.f
+			themelabel .options.nb.f.f.themelabel
+			themeselect .options.nb.f.f.themeselect
+		optsep .options.nb.f.sep
+		optbuttons .options.nb.f.b
+			optok	.options.nb.f.b.ok
+			optapply .options.nb.f.b.apply
+			optcancel .options.nb.f.b.cancel
+		optsavelabel .options.nb.f.savelabel
+	}
+
+	toplevel $widget(optwin)
+	ttk::notebook $widget(opttab)
+	ttk::frame $widget(optframe)
+	ttk::frame $widget(optfields)
+	ttk::separator $widget(optsep) -orient horizontal
+	ttk::frame $widget(optbuttons)
+
+	pack $widget(opttab) -expand 1 -fill both
+	$widget(opttab) add $widget(optframe) -text Options -padding 10
+
+	grid anchor $widget(optframe) n
+	grid $widget(optsep) -row 1 -column 0 -columnspan 2 -sticky nsew -pady 5
+	grid $widget(optfields) -row 0 -column 0 -columnspan 2 -sticky nsew
+	grid rowconfigure $widget(optframe) 0 -weight 1 -uniform a
+	grid columnconfigure $widget(optframe) 0 -weight 1
+
+	# Option Entry Fields
+
+	# set theme
+	ttk::label $widget(themelabel) -text "Theme: "
+	ttk::combobox $widget(themeselect) -values [ttk::style theme names] -state readonly
+	$widget(themeselect) set [ttk::style theme use]
+
+	# TODO controls and gameplay settings
+	# set arr/das
+	# set hold on/off
+	# set preview queue
+	# set controls
+
+	# arrange fields
+	grid anchor $widget(optfields) n
+	grid columnconfigure $widget(optfields) 1 -weight 1
+	grid $widget(themelabel) -column 0 -row 0 -sticky w
+	grid $widget(themeselect) -column 1 -row 0 -sticky we
+
+	# Option buttons: ok apply cancel
+	grid $widget(optbuttons) -row 2 -column 1
+	ttk::button $widget(optok) -text Ok -command [namespace code {
+		apply_options
+		exit_options
+	}]
+	ttk::button $widget(optapply) -text Apply -command [namespace code {apply_options}]
+	ttk::button $widget(optcancel) -text Cancel -command [namespace code {exit_options}]
+	grid $widget(optok) -row 0 -column 0 -padx 2
+	grid $widget(optapply) -row 0 -column 1 -padx 2
+	grid $widget(optcancel) -row 0 -column 2 -padx 2
+
+	# becomes "Options Saved" when options are applied
+	ttk::label $widget(optsavelabel)
+	grid $widget(optsavelabel) -row 2 -column 0 -sticky e
+
+	wm withdraw $widget(optwin)
+	#wm resizable $widget(optwin) 0 0
+	wm deiconify $widget(optwin)
+}
+
+proc apply_options {} {
+	variable widget
+	# set theme
+	ttk::style theme use [$widget(themeselect) get]
+	$widget(optsavelabel) configure -text "Options Saved"
+}
+
+proc exit_options {} {
+	variable widget
+	destroy $widget(optwin)
 }
 
 # Add a view for the piece currently inside the hold queue
