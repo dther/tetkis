@@ -376,7 +376,7 @@ proc open_options_window {} {
 	grid $widget(optcancel) -row 0 -column 2 -padx 2
 
 	# becomes "Options Saved" when options are applied
-	ttk::label $widget(optsavelabel)
+	ttk::label $widget(optsavelabel) -width [string length "Options Saved"]
 	grid $widget(optsavelabel) -row 2 -column 0 -sticky e
 
 	wm withdraw $widget(optwin)
@@ -386,8 +386,10 @@ proc open_options_window {} {
 
 proc apply_options {} {
 	variable widget
+
 	# set theme
 	ttk::style theme use [$widget(themeselect) get]
+
 	$widget(optsavelabel) configure -text "Options Saved"
 }
 
