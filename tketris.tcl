@@ -130,50 +130,50 @@ proc init {} {
 	# I is a special case, and has its own offset table.
 	# O has no stored rotations and no offsets. It cannot rotate.
 
-	array set piece [list \
-		list {L J I O S Z T}\
-		facings {north east south west}\
-		Lcolor orange\
-		Jcolor blue\
-		Icolor cyan\
-		Ocolor yellow\
-		Scolor green\
-		Zcolor red\
-		Tcolor magenta\
-		O {0 0  1 0  0 1  1 1}\
-		I {0 0 -1 0  1 0  2 0}\
-		T {0 0  1 0 -1 0  0 1}\
-		L {0 0  1 0 -1 0  1 1}\
-		J {0 0  1 0 -1 0 -1 1}\
-		S {0 0 -1 0  0 1  1 1}\
-		Z {0 0  1 0  0 1 -1 1}\
-		eastI {0 0  0  1  0 -1  0 -2}\
-		eastT {0 0  0  1  0 -1  1  0}\
-		eastL {0 0  0  1  0 -1  1 -1}\
-		eastJ {0 0  0  1  0 -1  1  1}\
-		eastS {0 0  0  1  1  0  1 -1}\
-		eastZ {0 0  0 -1  1  0  1  1}\
-		southI {0 0 -1 0   1 0  -2  0}\
-		southT {0 0  1 0  -1 0   0 -1}\
-		southL {0 0  1 0  -1 0  -1 -1}\
-		southJ {0 0  1 0  -1 0   1 -1}\
-		southS {0 -1 -1 -1  0 0  1 0}\
-		southZ {0 -1  1 -1  0 0 -1 0}\
-		westI {0 0  0 1  0 2    0 -1}\
-		westT {0 0  0 1  0 -1  -1 0}\
-		westL {0 0  0 1  0 -1  -1 1}\
-		westJ {0 0  0 1  0 -1  -1 -1}\
-		westS {-1 0  -1 1  0 0  0 -1}\
-		westZ {-1 0  -1 -1  0 0  0 1}\
-		northoffset {{0 0} {0 0}  {0 0}  {0 0}  {0 0}}\
-		eastoffset  {{0 0} {1 0}  {1 -1}  {0 2} {1 2}}\
-		southoffset {{0 0} {0 0}  {0 0}  {0 0}  {0 0}}\
-		westoffset  {{0 0} {-1 0} {-1 -1} {0 2} {-1 2}}\
-		Inorthoffset {{0 0}   {-1 0} {2 0} {-1 0} {2 0}}\
-		Ieastoffset  {{-1 0}  {0 0}  {0 0} {0 1} {0 -2}}\
-		Isouthoffset {{-1 1} {1 1} {-2 1} {1 0}  {-2 0}}\
-		Iwestoffset  {{0 1}  {0 1} {0 1}  {0 -1}  {0 2}}\
-	]
+	array set piece {
+		list {L J I O S Z T}
+		facings {north east south west}
+		Lcolor orange
+		Jcolor blue
+		Icolor cyan
+		Ocolor yellow
+		Scolor green
+		Zcolor red
+		Tcolor magenta
+		O {0 0  1 0  0 1  1 1}
+		I {0 0 -1 0  1 0  2 0}
+		T {0 0  1 0 -1 0  0 1}
+		L {0 0  1 0 -1 0  1 1}
+		J {0 0  1 0 -1 0 -1 1}
+		S {0 0 -1 0  0 1  1 1}
+		Z {0 0  1 0  0 1 -1 1}
+		eastI {0 0  0  1  0 -1  0 -2}
+		eastT {0 0  0  1  0 -1  1  0}
+		eastL {0 0  0  1  0 -1  1 -1}
+		eastJ {0 0  0  1  0 -1  1  1}
+		eastS {0 0  0  1  1  0  1 -1}
+		eastZ {0 0  0 -1  1  0  1  1}
+		southI {0 0 -1 0   1 0  -2  0}
+		southT {0 0  1 0  -1 0   0 -1}
+		southL {0 0  1 0  -1 0  -1 -1}
+		southJ {0 0  1 0  -1 0   1 -1}
+		southS {0 -1 -1 -1  0 0  1 0}
+		southZ {0 -1  1 -1  0 0 -1 0}
+		westI {0 0  0 1  0 2    0 -1}
+		westT {0 0  0 1  0 -1  -1 0}
+		westL {0 0  0 1  0 -1  -1 1}
+		westJ {0 0  0 1  0 -1  -1 -1}
+		westS {-1 0  -1 1  0 0  0 -1}
+		westZ {-1 0  -1 -1  0 0  0 1}
+		northoffset {{0 0} {0 0}  {0 0}  {0 0}  {0 0}}
+		eastoffset  {{0 0} {1 0}  {1 -1}  {0 2} {1 2}}
+		southoffset {{0 0} {0 0}  {0 0}  {0 0}  {0 0}}
+		westoffset  {{0 0} {-1 0} {-1 -1} {0 2} {-1 2}}
+		Inorthoffset {{0 0}   {-1 0} {2 0} {-1 0} {2 0}}
+		Ieastoffset  {{-1 0}  {0 0}  {0 0} {0 1} {0 -2}}
+		Isouthoffset {{-1 1} {1 1} {-2 1} {1 0}  {-2 0}}
+		Iwestoffset  {{0 1}  {0 1} {0 1}  {0 -1}  {0 2}}
+	}
 
 	# UI elements
 	array set widget {
