@@ -400,20 +400,20 @@ proc open_options_window {} {
 	# set arr/das
 	ttk::label $widget(arrlabel) -text "Auto Repeat Rate: "
 	ttk::label $widget(daslabel) -text "Delay Auto Shift: "
-	ttk::spinbox $widget(arrfield) -from 1 -to 1000 -increment 1 -format "%.0fHz" -validate key -validatecommand {
+	ttk::spinbox $widget(arrfield) -from 0 -to 1000 -increment 5 -format "%.0fHz" -validate key -validatecommand {
 		set newval [string trim %P HhZz]
 		if {[string is double $newval]} {
 			return 1
 		}
 		return 0
-	}
-	ttk::spinbox $widget(dasfield) -from 1 -to 1000 -increment 1 -format "%.0fms" -validate key -validatecommand {
+	} -width 6
+	ttk::spinbox $widget(dasfield) -from 0 -to 1000 -increment 10 -format "%.0fms" -validate key -validatecommand {
 		set newval [string trim %P MmSs]
 		if {[string is double $newval]} {
 			return 1
 		}
 		return 0
-	}
+	} -width 6
 	$widget(arrfield) set $option(arr)Hz
 	$widget(dasfield) set $option(das)ms
 	# TODO more game settings
@@ -428,9 +428,9 @@ proc open_options_window {} {
 	grid $widget(themelabel) -column 0 -row 0 -sticky w
 	grid $widget(themeselect) -column 1 -row 0 -columnspan 3 -sticky we
 	grid $widget(arrlabel) -column 0 -row 1 -sticky w
-	grid $widget(arrfield) -column 1 -row 1 -sticky we
+	grid $widget(arrfield) -column 1 -row 1 -sticky w
 	grid $widget(daslabel) -column 2 -row 1 -sticky w
-	grid $widget(dasfield) -column 3 -row 1 -sticky we
+	grid $widget(dasfield) -column 3 -row 1 -sticky w
 
 	# Option buttons: ok apply cancel
 	grid $widget(optbuttons) -row 2 -column 1
@@ -463,13 +463,20 @@ proc apply_options {} {
 	# set arr/das
 	set newarr [string trim [$widget(arrfield) get] HhZz]
 	set newdas [string trim [$widget(dasfield) get] MmSs]
-	if {$newarr >= 1 && $newarr <= 1000} {
-		set option(arr) $newarr
+	if {$newarr < 1} {
+		set newarr 1
+	} elseif {$newdas > 1000} {
+		set newdas 1000
 	}
+	set option(arr) $newarr
 	$widget(arrfield) set $option(arr)Hz
-	if {$newdas >= 1 && $newdas <= 1000} {
-		set option(das) $newdas
+
+	if {$newdas < 1} {
+		set newdas 1
+	} elseif {$newdas > 1000} {
+		set newdas 1000
 	}
+	set option(das) $newdas
 	$widget(dasfield) set $option(das)ms
 
 	$widget(optsavelabel) configure -text "Options Saved"
