@@ -393,7 +393,7 @@ proc open_options_window {} {
 
 	# set theme
 	ttk::label $widget(themelabel) -text "Theme: "
-	ttk::combobox $widget(themeselect) -values [ttk::style theme names] -state readonly
+	ttk::combobox $widget(themeselect) -values [ttk::style theme names] -state readonly -takefocus 1
 	$widget(themeselect) set [ttk::style theme use]
 
 	# set arr/das
@@ -405,14 +405,14 @@ proc open_options_window {} {
 			return 1
 		}
 		return 0
-	} -width 6
+	} -width 6 -takefocus 1
 	ttk::spinbox $widget(dasfield) -from 0 -to 1000 -increment 10 -format "%.0fms" -validate key -validatecommand {
 		set newval [string trim %P MmSs]
 		if {[string is double $newval]} {
 			return 1
 		}
 		return 0
-	} -width 6
+	} -width 6 -takefocus 1
 	$widget(arrfield) set $option(arr)Hz
 	$widget(dasfield) set $option(das)ms
 	# TODO more game settings
