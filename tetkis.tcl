@@ -301,7 +301,7 @@ proc init {} {
 		MoveRight {Right d}
 		HardDrop {Up space}
 		SoftDrop {Down s}
-		RotateRight {x e w}
+		RotateRight {x w}
 		RotateLeft {z q}
 		Hold {Shift_L Shift_R}
 	}
@@ -335,7 +335,7 @@ proc apply_binds {} {
 	foreach {event keys} $bindsdict {
 		event delete <<$event>>
 		foreach key $keys {
-			try {event add <<$event>> <$key>}
+			catch {event add <<$event>> <$key>}
 		}
 	}
 
@@ -344,8 +344,8 @@ proc apply_binds {} {
 	event delete <<SoftDropPress>>
 	event delete <<SoftDropRelease>>
 	foreach key $softdropkeys {
-		try {event add <<SoftDropPress>> <$key>}
-		try {event add <<SoftDropRelease>> <KeyRelease-$key>}
+		catch {event add <<SoftDropPress>> <$key>}
+		catch {event add <<SoftDropRelease>> <KeyRelease-$key>}
 	}
 }
 
@@ -458,10 +458,47 @@ proc open_options_window {} {
 	}]
 	$widget(seedfield) set $option(seed)
 
+	# set controls - XXX this one is complicated
+	variable binds
+	set row 10
+	# put the control fields in a logical order
+	foreach {action} {MoveLeft MoveRight RotateLeft RotateRight Hold SoftDrop HardDrop} {
+		set keys $binds($action)
+		set widget(${action}label) $widget(optfields).label${action}
+		set widget(${action}field) $widget(optfields).field${action}
+
+		ttk::label $widget(${action}label) -text $action
+		# Value of field must be a valid Tcl list containing one or more valid keysyms
+		# if invalid, return to the currently set value of $binds($action)
+		ttk::entry $widget(${action}field) -text $action -validate focus -validatecommand {
+			set keys %P
+			foreach key $keys {
+				if {[catch {event add <<DUMMYNOP>> <$key>}]} {
+					return 0
+				}
+			}
+			return 1
+		} -invalidcommand [namespace code "
+			variable widget
+			variable binds
+			$widget(${action}field) delete 0 end
+			$widget(${action}field) insert 0 {$binds($action)}
+		"]
+		# FIXME -invalidcommand can excise the invalid keysyms and therefore not discard user input completely
+
+		# init. to the current values
+		$widget(${action}field) delete 0 end
+		$widget(${action}field) insert 0 $binds($action)
+
+		# TODO make arrangement not a hack (just assuming rows 10+ are free)
+		grid $widget(${action}label) -column 0 -row $row -sticky w -columnspan 2
+		grid $widget(${action}field) -column 2 -row $row -sticky we -columnspan 2
+		incr row
+	}
+
 	# TODO more game settings
 	# set hold on/off
 	# set preview queue
-	# set controls
 
 	# arrange fields
 	set padding "-padx 2 -pady 2"
@@ -531,6 +568,15 @@ proc apply_options {} {
 	}
 	set option(seed) $newseed
 	$widget(seedfield) set $option(seed)
+
+	# set binds table
+	variable binds
+	foreach {action keys} [array get binds] {
+		set binds($action) [$widget(${action}field) get]
+		$widget(${action}field) delete 0 end
+		$widget(${action}field) insert 0 $binds($action)
+	}
+	apply_binds
 
 	$widget(optsavelabel) configure -text "Options Saved"
 }
