@@ -30,9 +30,15 @@ variable widget
 
 proc init {} {
 	variable game
+	variable option
 	variable piece
 	variable widget
 	variable matrix
+
+	array set option {
+		das 200
+		arr 60
+	}
 
 	# TODO separate options from game state
 	# constants + settings
@@ -307,6 +313,41 @@ proc init {} {
 	bind $widget(matrix) <<SoftDropRelease>> [namespace code {soft_drop false}]
 	bind $widget(matrix) <<Hold>> [namespace code {hold_piece}]
 	bind $widget(matrix) <<HardDrop>> [namespace code {hard_drop}]
+
+	# autorepeat
+	# XXX system autorepeat currently remains on
+	# (It's normally much slower than default settings)
+	#exec xset r off
+	variable lastautostart {}
+	bind all <<MoveLeft>> [namespace code {start_autorepeat %k %E}]
+	bind all <<MoveRight>> [namespace code {start_autorepeat %k %E}]
+	bind all <Any-KeyRelease> [namespace code {stop_autorepeat %k}]
+	#bind . <Destroy> {exec xset r on}
+}
+
+# software autorepeat implementation (to allow user configuration)
+proc start_autorepeat {keycode sendevent} {
+	variable option
+	variable lastautostart
+	if {$sendevent} {return}
+	if {$lastautostart != $keycode} {
+		stop_autorepeat $lastautostart
+	}
+	set lastautostart $keycode
+	after cancel [namespace code "do_repeat $keycode"]
+	after $option(das) [namespace code "do_repeat $keycode"]
+}
+
+proc stop_autorepeat {keycode} {
+	after cancel [namespace code "do_repeat $keycode"]
+}
+
+proc do_repeat {keycode} {
+	variable widget
+	variable option
+	after cancel [namespace code "do_repeat $keycode"]
+	after [expr {round(1000/$option(arr))}] [namespace code "do_repeat $keycode"]
+	event generate $widget(matrix) <KeyPress> -keycode $keycode -sendevent 1
 }
 
 # create and display options window
@@ -812,7 +853,9 @@ proc get_piece_kicks {piecename currentfacing newfacing} {
 proc move_piece {dir} {
 	variable game
 	variable matrix
+
 	if {$game(locked)} {return}
+
 	set newpos $matrix(fallcenter)
 	switch -- $dir {
 		left {
@@ -841,7 +884,7 @@ proc move_piece {dir} {
 		# if we can't fall, check if we need to be locked
 		if {![can_fall]} {
 			cancel_fall
-			tailcall lock_phase
+			lock_phase
 		}
 	}
 }
