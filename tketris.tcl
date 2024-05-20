@@ -353,6 +353,7 @@ proc do_repeat {keycode} {
 # create and display options window
 proc open_options_window {} {
 	variable widget
+	variable option
 	# TODO if options window already exists, focus it and return
 	array set widget {
 		optwin .options
@@ -361,6 +362,10 @@ proc open_options_window {} {
 		optfields .options.nb.f.f
 			themelabel .options.nb.f.f.themelabel
 			themeselect .options.nb.f.f.themeselect
+			daslabel .options.nb.f.f.dasl
+			dasfield .options.nb.f.f.das
+			arrlabel .options.nb.f.f.arrl
+			arrfield .options.nb.f.f.arr
 		optsep .options.nb.f.sep
 		optbuttons .options.nb.f.b
 			optok	.options.nb.f.b.ok
@@ -392,17 +397,40 @@ proc open_options_window {} {
 	ttk::combobox $widget(themeselect) -values [ttk::style theme names] -state readonly
 	$widget(themeselect) set [ttk::style theme use]
 
-	# TODO controls and gameplay settings
 	# set arr/das
+	ttk::label $widget(arrlabel) -text "Auto Repeat Rate: "
+	ttk::label $widget(daslabel) -text "Delay Auto Shift: "
+	ttk::spinbox $widget(arrfield) -from 1 -to 1000 -increment 1 -format "%.0fHz" -validate key -validatecommand {
+		set newval [string trim %P HhZz]
+		if {[string is double $newval]} {
+			return 1
+		}
+		return 0
+	}
+	ttk::spinbox $widget(dasfield) -from 1 -to 1000 -increment 1 -format "%.0fms" -validate key -validatecommand {
+		set newval [string trim %P MmSs]
+		if {[string is double $newval]} {
+			return 1
+		}
+		return 0
+	}
+	$widget(arrfield) set $option(arr)Hz
+	$widget(dasfield) set $option(das)ms
+	# TODO more game settings
 	# set hold on/off
 	# set preview queue
 	# set controls
 
 	# arrange fields
 	grid anchor $widget(optfields) n
-	grid columnconfigure $widget(optfields) 1 -weight 1
+	grid columnconfigure $widget(optfields) 1 -weight 1 -uniform a
+	grid columnconfigure $widget(optfields) 3 -weight 1 -uniform a
 	grid $widget(themelabel) -column 0 -row 0 -sticky w
-	grid $widget(themeselect) -column 1 -row 0 -sticky we
+	grid $widget(themeselect) -column 1 -row 0 -columnspan 3 -sticky we
+	grid $widget(arrlabel) -column 0 -row 1 -sticky w
+	grid $widget(arrfield) -column 1 -row 1 -sticky we
+	grid $widget(daslabel) -column 2 -row 1 -sticky w
+	grid $widget(dasfield) -column 3 -row 1 -sticky we
 
 	# Option buttons: ok apply cancel
 	grid $widget(optbuttons) -row 2 -column 1
@@ -427,9 +455,22 @@ proc open_options_window {} {
 
 proc apply_options {} {
 	variable widget
+	variable option
 
 	# set theme
 	ttk::style theme use [$widget(themeselect) get]
+
+	# set arr/das
+	set newarr [string trim [$widget(arrfield) get] HhZz]
+	set newdas [string trim [$widget(dasfield) get] MmSs]
+	if {$newarr >= 1 && $newarr <= 1000} {
+		set option(arr) $newarr
+	}
+	$widget(arrfield) set $option(arr)Hz
+	if {$newdas >= 1 && $newdas <= 1000} {
+		set option(das) $newdas
+	}
+	$widget(dasfield) set $option(das)ms
 
 	$widget(optsavelabel) configure -text "Options Saved"
 }
