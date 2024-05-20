@@ -1356,7 +1356,6 @@ proc check_tspin {} {
 		incr y $cy
 		list $x $y
 	}]
-	puts $sidecoords
 	lassign $sidecoords a b c d
 
 	# check which of the four corners are occupied
@@ -1375,7 +1374,6 @@ proc check_tspin {} {
 		# not in T-Slot, no T-Spin
 		return false
 	} elseif {$ab == 2 || $game(kicktspin)} {
-		puts "$ab $game(kicktspin)"
 		# Sides A B and at least one of C/D are filled,
 		# OR the T piece travelled very far to fit into this slot.
 		# "True" T-Spin.
@@ -1423,11 +1421,9 @@ proc pattern_phase {tspin} {
 	}
 
 	set linescleared [llength $matrix(clearedlines)] 
-	# track back-to-backs
-	if {$linescleared == 4 || $tspin != false} {
-		set game(b2b) true
-	} elseif {$linescleared > 0} {
-		# single, double or triple w/o t-spin ends a back-to-back
+	# clearing no lines DOES NOT reset B2B
+	# single, doubles and triples w/o a tspin DO reset B2B
+	if {$linescleared != 0 && $linescleared != 4 && $tspin == false} {
 		set game(b2b) false
 	}
 
@@ -1438,6 +1434,11 @@ proc pattern_phase {tspin} {
 	} elseif {$tspin != false} {
 		# award T-Spins even if no lines are cleared
 		award_points $linescleared $tspin
+	}
+
+	# Award B2B starting with the second action in the sequence
+	if {$linescleared == 4 || ($tspin != false && $linescleared > 0)} {
+		set game(b2b) true
 	}
 
 	clear_phase
