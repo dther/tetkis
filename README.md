@@ -1,4 +1,4 @@
-# tketris
+# TeTkis
 
 Tetris clone in Tcl/Tk!
 

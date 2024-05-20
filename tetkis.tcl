@@ -1,10 +1,9 @@
 #!/usr/bin/env wish
 
-# tketris.tcl
-# (c) 2024 Rudy Dellomas III <dther+tketris@dther.xyz>
+# tetkis.tcl
+# (c) 2024 Rudy Dellomas III <dther+tetkis@dther.xyz>
 #
-# Tketris: A simple Tetris clone for Tcl/Tk 8.6 <=
-# Not affiliated with The Tetris Company whatsoever. Name subject to change.
+# TeTkis: A simple Tetris clone for Tcl/Tk 8.6 <=
 #
 # TODO apply a software license
 #
@@ -21,7 +20,7 @@
 # https://archive.org/download/2009-tetris-variant-concepts_202201/2009%20Tetris%20Design%20Guideline.pdf
 
 package require Tk
-namespace eval Tketris { ;#namespace encapsulates this file
+namespace eval TeTkis { ;#namespace encapsulates this file
 
 variable game
 variable piece
@@ -66,7 +65,7 @@ proc init {} {
 	#              essentially "speed up" the first soft drop)
 	# locked: if true, player cannot input piece movements
 	array set game {
-		name Tketris
+		name TeTkis
 		cellsize 25
 		queuesize 7
 		holding false
@@ -1480,4 +1479,4 @@ proc complete_phase {} {
 }
 
 init
-} ;# end of namepace eval Tketris
+} ;# end of namepace eval TeTkis
