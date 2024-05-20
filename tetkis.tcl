@@ -37,6 +37,7 @@ proc init {} {
 	array set option {
 		das 200
 		arr 60
+		seed -1
 	}
 
 	# TODO separate options from game state
@@ -69,7 +70,7 @@ proc init {} {
 		cellsize 25
 		queuesize 7
 		holding false
-		seed 0
+		seed -1
 		maxlockmoves 15
 		bagrandom true
 		skyline 10
@@ -365,6 +366,8 @@ proc open_options_window {} {
 			dasfield .options.nb.f.f.das
 			arrlabel .options.nb.f.f.arrl
 			arrfield .options.nb.f.f.arr
+			seedlabel .options.nb.f.f.seedl
+			seedfield .options.nb.f.f.seed
 		optsep .options.nb.f.sep
 		optbuttons .options.nb.f.b
 			optok	.options.nb.f.b.ok
@@ -415,21 +418,40 @@ proc open_options_window {} {
 	} -width 6 -takefocus 1
 	$widget(arrfield) set $option(arr)Hz
 	$widget(dasfield) set $option(das)ms
+
+	# seed
+	ttk::label $widget(seedlabel) -text "Seed:\n(-1 = new every game)"
+	ttk::spinbox $widget(seedfield) -from -1 -to Inf -increment 1 -takefocus 1 -validate focus -validatecommand {
+		set newseed %P
+		if {[string is integer -strict $newseed]} {
+			return 1
+		}
+		return 0
+	} -invalidcommand [namespace code {
+		variable widget
+		variable option
+		$widget(seedfield) set $option(seed)
+	}]
+	$widget(seedfield) set $option(seed)
+
 	# TODO more game settings
 	# set hold on/off
 	# set preview queue
 	# set controls
 
 	# arrange fields
+	set padding "-padx 2 -pady 2"
 	grid anchor $widget(optfields) n
 	grid columnconfigure $widget(optfields) 1 -weight 1 -uniform a
 	grid columnconfigure $widget(optfields) 3 -weight 1 -uniform a
-	grid $widget(themelabel) -column 0 -row 0 -sticky w
-	grid $widget(themeselect) -column 1 -row 0 -columnspan 3 -sticky we
-	grid $widget(arrlabel) -column 0 -row 1 -sticky w
-	grid $widget(arrfield) -column 1 -row 1 -sticky w
-	grid $widget(daslabel) -column 2 -row 1 -sticky w
-	grid $widget(dasfield) -column 3 -row 1 -sticky w
+	grid $widget(themelabel) -column 0 -row 0 -sticky w {*}$padding
+	grid $widget(themeselect) -column 1 -row 0 -columnspan 3 -sticky we {*}$padding
+	grid $widget(arrlabel) -column 0 -row 1 -sticky w {*}$padding
+	grid $widget(arrfield) -column 1 -row 1 -sticky w {*}$padding
+	grid $widget(daslabel) -column 2 -row 1 -sticky w {*}$padding
+	grid $widget(dasfield) -column 3 -row 1 -sticky w {*}$padding
+	grid $widget(seedlabel) -column 0 -row 2 -sticky w -columnspan 2 {*}$padding
+	grid $widget(seedfield) -column 2 -row 2 -sticky we -columnspan 2 {*}$padding
 
 	# Option buttons: ok apply cancel
 	grid $widget(optbuttons) -row 2 -column 1
@@ -448,7 +470,7 @@ proc open_options_window {} {
 	grid $widget(optsavelabel) -row 2 -column 0 -sticky e
 
 	wm withdraw $widget(optwin)
-	#wm resizable $widget(optwin) 0 0
+	wm resizable $widget(optwin) 0 0
 	wm deiconify $widget(optwin)
 }
 
@@ -477,6 +499,14 @@ proc apply_options {} {
 	}
 	set option(das) $newdas
 	$widget(dasfield) set $option(das)ms
+
+	# set seed
+	set newseed [$widget(seedfield) get]
+	if {![string is integer -strict $newseed]} {
+		set newseed $option(seed)
+	}
+	set option(seed) $newseed
+	$widget(seedfield) set $option(seed)
 
 	$widget(optsavelabel) configure -text "Options Saved"
 }
@@ -626,6 +656,7 @@ proc new_game {} {
 	variable game
 	variable widget
 	variable matrix
+	variable option
 
 	# cancel all timers
 	cancel_lock
@@ -674,6 +705,7 @@ if 0 {
 	update_stats
 
 	# seed PRNG
+	set game(seed) $option(seed)
 	if {$game(seed) == -1} {
 		# harvest entropy from the decaying universe
 		expr {srand([clock milliseconds])}
