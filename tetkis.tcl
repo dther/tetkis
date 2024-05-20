@@ -294,16 +294,19 @@ proc init {} {
 	wm resizable . 0 0
 	wm deiconify .
 
-	# virtual events
-	event add <<MoveLeft>> <Left> <a>
-	event add <<MoveRight>> <Right> <d>
-	event add <<HardDrop>> <Up> <w>
-	event add <<SoftDropPress>> <Down> <s>
-	event add <<SoftDropRelease>> <KeyRelease-Down> <KeyRelease-s>
-	event add <<RotateRight>> <x> <e>
-	event add <<RotateLeft>> <z> <q>
-	event add <<Hold>> <Shift_L>
-	event add <<Pause>> <Escape>
+	# bindings
+	variable binds
+	array set binds {
+		MoveLeft {Left a}
+		MoveRight {Right d}
+		HardDrop {Up space}
+		SoftDrop {Down s}
+		RotateRight {x e w}
+		RotateLeft {z q}
+		Hold {Shift_L Shift_R}
+	}
+
+	apply_binds
 
 	bind $widget(matrix) <<MoveLeft>> [namespace code {move_piece left}]
 	bind $widget(matrix) <<MoveRight>> [namespace code {move_piece right}]
@@ -323,6 +326,27 @@ proc init {} {
 	bind all <<MoveRight>> [namespace code {start_autorepeat %k %E}]
 	bind all <Any-KeyRelease> [namespace code {stop_autorepeat %k}]
 	#bind . <Destroy> {exec xset r on}
+}
+
+# Binds keys to gameplay virtual events according to $binds array
+proc apply_binds {} {
+	variable binds
+	set bindsdict [array get binds]
+	foreach {event keys} $bindsdict {
+		event delete <<$event>>
+		foreach key $keys {
+			try {event add <<$event>> <$key>}
+		}
+	}
+
+	# Soft Drop is a special case.
+	set softdropkeys $binds(SoftDrop)
+	event delete <<SoftDropPress>>
+	event delete <<SoftDropRelease>>
+	foreach key $softdropkeys {
+		try {event add <<SoftDropPress>> <$key>}
+		try {event add <<SoftDropRelease>> <KeyRelease-$key>}
+	}
 }
 
 # software autorepeat implementation (to allow user configuration)
