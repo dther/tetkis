@@ -34,6 +34,10 @@ proc init {} {
 	variable widget
 	variable matrix
 
+	# XXX import a custom theme
+	set LIBPATH [file join [file dirname [info script]] lib]
+	source [file join $LIBPATH azure-ttk-theme azure.tcl]
+
 	array set option {
 		das 200
 		arr 60
@@ -268,13 +272,14 @@ proc init {} {
 
 	# game menu
 	ttk::labelframe $widget(gamemenu) -text MENU
-	button $widget(newgame) -text "New Game"\
+	ttk::button $widget(newgame) -text "New Game"\
 				-command [namespace code new_game]
-	button $widget(options) -text "Options" -command [namespace code {
+	ttk::button $widget(options) -text "Options" -command [namespace code {
 		open_options_window
 	}]
-	button $widget(about) -text "About" -command [namespace code {
-		action_notify {(c) 2024 Rudy "dther" Dellomas III. Not authorised by TTC whatsoever. As-is, No Warranty, No Refunds.}
+	ttk::button $widget(about) -text "About" -command [namespace code {
+		tk_messageBox -default ok -message "TeTkis v1.0.0" -title "About TeTkis"\
+-detail "(c) 2024 Rudy Dellomas III"
 	}]
 	pack $widget(newgame) -fill x
 	pack $widget(options) -fill x
@@ -301,7 +306,7 @@ proc init {} {
 		MoveRight {Right d}
 		HardDrop {Up space}
 		SoftDrop {Down s}
-		RotateRight {x w}
+		RotateRight {x w e}
 		RotateLeft {z q}
 		Hold {Shift_L Shift_R}
 	}
@@ -316,6 +321,9 @@ proc init {} {
 	bind $widget(matrix) <<SoftDropRelease>> [namespace code {soft_drop false}]
 	bind $widget(matrix) <<Hold>> [namespace code {hold_piece}]
 	bind $widget(matrix) <<HardDrop>> [namespace code {hard_drop}]
+
+	# focus the matrix on click
+	bind . <1> [namespace code {variable widget ; focus $widget(matrix)}]
 
 	# autorepeat
 	# XXX system autorepeat currently remains on
@@ -556,7 +564,15 @@ proc apply_options {} {
 	variable option
 
 	# set theme
-	ttk::style theme use [$widget(themeselect) get]
+	set theme [$widget(themeselect) get]
+	# XXX special cases for azure
+	if {[string match azure-dark $theme]} {
+		set_theme dark
+	} elseif {[string match azure-light $theme]} {
+		set_theme light
+	} else {
+		ttk::style theme use $theme
+	}
 
 	# set arr/das
 	set newarr [string trim [$widget(arrfield) get] HhZz]
@@ -683,12 +699,6 @@ proc init_view {canvas index cx cy cellsize} {
 	apply $newpreview $index J $adjustedx $adjustedy $cellsize
 	apply $newpreview $index S $adjustedx $adjustedy $cellsize
 	apply $newpreview $index Z $adjustedx $adjustedy $cellsize
-}
-
-proc action_notify {str} {
-	variable game
-	set game(lastaction) $str
-	update_stats
 }
 
 # initialise matrix data structure
