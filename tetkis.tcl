@@ -5,7 +5,18 @@
 #
 # TeTkis: A simple Tetris clone for Tcl/Tk 8.6 <=
 #
-# TODO apply a software license
+# TeTkis is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the
+# Free Software Foundation, version 3.
+# 
+# TeTkis is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see <https://www.gnu.org/licenses/>.
+
 #
 # Feature implementation is guided by the 2009 Tetris Guidelines,
 # but occasionally departs from it for reasons of pragmatism.
@@ -279,8 +290,20 @@ proc init {} {
 	}]
 	ttk::button $widget(about) -text "About" -command [namespace code {
 		tk_messageBox -default ok -message "TeTkis v1.0.0" -title "About TeTkis"\
--detail "(c) 2024 Rudy Dellomas III"
-	}]
+-detail {Except for the Azure ttk theme:
+(c) 2024 Rudy Dellomas III
+
+TeTkis is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+
+TeTkis is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+---
+Azure theme for ttk
+https://github.com/rdbende/Azure-ttk-theme/
+
+Copyright (c) 2021 rdbende, redistributed under the terms of the MIT License.}}]
 	pack $widget(newgame) -fill x
 	pack $widget(options) -fill x
 	pack $widget(about) -fill x
