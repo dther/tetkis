@@ -378,7 +378,8 @@ proc do_repeat {keycode} {
 proc open_options_window {} {
 	variable widget
 	variable option
-	# TODO if options window already exists, focus it and return
+	# if options window already exists, focus it and return
+	if {![catch {focus $widget(optwin)}]} { return }
 	array set widget {
 		optwin .options
 		opttab .options.nb
@@ -392,6 +393,7 @@ proc open_options_window {} {
 			arrfield .options.nb.f.f.arr
 			seedlabel .options.nb.f.f.seedl
 			seedfield .options.nb.f.f.seed
+			binds .options.nb.f.f.binds
 		optsep .options.nb.f.sep
 		optbuttons .options.nb.f.b
 			optok	.options.nb.f.b.ok
@@ -459,13 +461,33 @@ proc open_options_window {} {
 	$widget(seedfield) set $option(seed)
 
 	# set controls - XXX this one is complicated
+	ttk::labelframe $widget(binds) -text CONTROLS
 	variable binds
-	set row 10
+	set row 0
+	set removeinvalidkeys [list {action} {
+		variable widget
+		variable binds
+		set keys %P
+		# excise invalid keysyms
+		set keys [lmap key $keys {
+			if {[catch {event add <<DUMMYNOP>> <$key>}]} {
+				continue
+			}
+			set key
+		}]
+		if {[llength $keys] >= 1} {
+			$widget(${action}field) delete 0 end
+			$widget(${action}field) insert 0 $keys
+		} else {
+			$widget(${action}field) delete 0 end
+			$widget(${action}field) insert 0 $binds($action)
+		}
+	} [namespace current]]
 	# put the control fields in a logical order
 	foreach {action} {MoveLeft MoveRight RotateLeft RotateRight Hold SoftDrop HardDrop} {
 		set keys $binds($action)
-		set widget(${action}label) $widget(optfields).label${action}
-		set widget(${action}field) $widget(optfields).field${action}
+		set widget(${action}label) $widget(binds).label${action}
+		set widget(${action}field) $widget(binds).field${action}
 
 		ttk::label $widget(${action}label) -text $action
 		# Value of field must be a valid Tcl list containing one or more valid keysyms
@@ -478,21 +500,14 @@ proc open_options_window {} {
 				}
 			}
 			return 1
-		} -invalidcommand [namespace code "
-			variable widget
-			variable binds
-			$widget(${action}field) delete 0 end
-			$widget(${action}field) insert 0 {$binds($action)}
-		"]
-		# FIXME -invalidcommand can excise the invalid keysyms and therefore not discard user input completely
+		} -invalidcommand "apply {$removeinvalidkeys} $action"
 
 		# init. to the current values
 		$widget(${action}field) delete 0 end
 		$widget(${action}field) insert 0 $binds($action)
 
-		# TODO make arrangement not a hack (just assuming rows 10+ are free)
-		grid $widget(${action}label) -column 0 -row $row -sticky w -columnspan 2
-		grid $widget(${action}field) -column 2 -row $row -sticky we -columnspan 2
+		grid $widget(${action}label) -column 0 -row $row -sticky w
+		grid $widget(${action}field) -column 1 -row $row -sticky we
 		incr row
 	}
 
@@ -513,6 +528,7 @@ proc open_options_window {} {
 	grid $widget(dasfield) -column 3 -row 1 -sticky w {*}$padding
 	grid $widget(seedlabel) -column 0 -row 2 -sticky w -columnspan 2 {*}$padding
 	grid $widget(seedfield) -column 2 -row 2 -sticky we -columnspan 2 {*}$padding
+	grid $widget(binds) -column 0 -row 3 -columnspan 4
 
 	# Option buttons: ok apply cancel
 	grid $widget(optbuttons) -row 2 -column 1
