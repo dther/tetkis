@@ -1,4 +1,5 @@
 # TeTkis
+![image](https://github.com/dther/tetkis/assets/25546304/3bb3df50-3ec0-4abe-b27a-45061eafe9c9)
 
 Tetris clone in Tcl/Tk!
 
